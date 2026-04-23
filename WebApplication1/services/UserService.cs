@@ -20,9 +20,9 @@ namespace WebApplication1.Services
            
          
         }
-        public async Task<User?> CreateUser(User user)
+        public async Task<User?> RegisterUser(User user)
         {
-            return await _userRepository.CreateUser(user);
+            return await _userRepository.RegisterUser(user);
         }
     }
 

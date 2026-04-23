@@ -41,7 +41,7 @@ namespace WebApplication1.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] User user)
+        public async Task<IActionResult> Register([FromBody] User user)
         {
             if (user == null)
             {
@@ -50,7 +50,7 @@ namespace WebApplication1.Controllers
                 
             try
             {
-                var createdUser = await _userService.CreateUser(user);
+                var createdUser = await _userService.RegisterUser(user);
                 if (createdUser == null)
                 {
                     return BadRequest("User could not be created.");

@@ -36,7 +36,7 @@ namespace WebApplication1.Repository
             };
         }
 
-        public async Task<User?> CreateUser(User user)
+        public async Task<User?> RegisterUser(User user)
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
