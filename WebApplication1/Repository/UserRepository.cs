@@ -19,7 +19,42 @@ namespace WebApplication1.Repository
 
 
 
-        public async Task<User?> RegisterUser(User user)
+
+        public  async Task<User?> GetUserFromEmail(string email)
+        {
+
+
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            try
+            {
+                using var cmd = new SqlCommand("SELECT Id, Username, Email, Passwordhash FROM Users WHERE Email = @Email;", conn);
+                cmd.Parameters.AddWithValue("@Email", email);
+                using var reader = await cmd.ExecuteReaderAsync();
+                var idOrdinal = reader.GetOrdinal("Id");
+                var usernameOrdinal = reader.GetOrdinal("Username");
+                var emailOrdinal = reader.GetOrdinal("Email");
+                var passwordHashOrdinal = reader.GetOrdinal("Passwordhash");
+                if (await reader.ReadAsync())
+                {
+                    return new User
+                    {
+                        ID = reader.GetGuid(idOrdinal),
+                        Username = reader.GetString(usernameOrdinal),
+                        Email = reader.GetString(emailOrdinal),
+                        PasswordHash = reader.GetString(passwordHashOrdinal)
+                    };
+                }
+                return null;
+            }
+            catch (SqlException e)
+            {
+                Console.WriteLine($"SqlException: {e.Message}");
+                throw;
+            }
+        }
+
+        public async Task<UserDto?> RegisterUser(User user)
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -32,15 +67,19 @@ namespace WebApplication1.Repository
                 cmd.Parameters.AddWithValue("@username", user.Username);
                 cmd.Parameters.AddWithValue("@email", user.Email);
                 cmd.Parameters.AddWithValue("@passwordhash", user.PasswordHash);
+
                 using var reader = await cmd.ExecuteReaderAsync();
+                var idOrdinal = reader.GetOrdinal("Id");
+                var usernameOrdinal = reader.GetOrdinal("Username");
+                var emailOrdinal = reader.GetOrdinal("Email");
                 if (await reader.ReadAsync())
                 {
-                    var id = reader.GetGuid(0);
-                    var username = reader.GetString(1);
-                    var email = reader.GetString(2);
-
-
-
+                    return new UserDto
+                    {
+                        ID = reader.GetGuid(idOrdinal),
+                        Username = reader.GetString(usernameOrdinal),
+                        Email = reader.GetString(emailOrdinal),
+                    };
 
                 }
 

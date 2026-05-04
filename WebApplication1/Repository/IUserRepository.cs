@@ -6,7 +6,7 @@ namespace WebApplication1.Repository
     public interface IUserRepository
     {
         
-        Task<User?> RegisterUser(User user);
+        Task<UserDto?> RegisterUser(User user);
         Task<AuthenticatedUser?> GetUserFromSession(Guid id);
 
         Task<User?> GetUserFromEmail(string email);

@@ -17,14 +17,14 @@ namespace WebApplication1.Services
 
 
 
-        public async Task<User?> GetUserFromSession(Guid id)
+        public async Task<AuthenticatedUser?> GetUserFromSession(Guid id)
         {
             var user = await _userRepository.GetUserFromSession(id);
 
             if (user == null) { return null; }
             // Check if session is expired
 
-            if (user.SessionExp == null || user.SessionExp < DateTime.UtcNow)
+            if (user.SessionExp < DateTime.UtcNow)
             {
                 return null;
             }
@@ -40,9 +40,29 @@ namespace WebApplication1.Services
         {
             try
             {
-                await 
+                var user = await _userRepository.GetUserFromEmail(LoginRequest.Email);
+                if (user == null)
+                {
+                    return new LoginResult { Success = false, ErrorMessage = "Invalid email or password." };
+                }
 
+                var result = BC.Verify(LoginRequest.Password, user.PasswordHash);
 
+                if (!result)
+                {
+                    return new LoginResult { Success = false, ErrorMessage = "Invalid email or password." };
+                }
+
+                return new LoginResult
+                {
+                    Success = true,
+                    User = new UserDto
+                    {
+                        ID = user.ID,
+                        Username = user.Username,
+                        Email = user.Email
+                    }
+                };
             }
             catch (Exception ex)
             {
