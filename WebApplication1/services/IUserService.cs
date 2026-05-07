@@ -9,5 +9,7 @@ namespace WebApplication1.Services
         Task<AuthenticatedUser?> GetUserFromSession(Guid id);
 
         Task<LoginResult> LoginUser(LoginRequest loginRequest);
+
+
     }
 }
