@@ -17,6 +17,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISteamRepository, SteamRepository>();
 builder.Services.AddScoped<ISteamService, SteamService>();
+builder.Services.AddHttpClient<ISteamService, SteamService>();
 
 var app = builder.Build();
 

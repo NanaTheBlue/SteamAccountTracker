@@ -1,17 +1,20 @@
 ﻿
 
 using WebApplication1.Models;
+using WebApplication1.Dtos;
 
 namespace WebApplication1.services
 {
     public class SteamService : ISteamService
     {
         private readonly HttpClient _client;
+        private readonly string _apiKey;
 
-        public SteamService(HttpClient client)
+
+        public SteamService(HttpClient client, IConfiguration config)
         {
             _client = client;
-            _apiKey = config["Steam:ApiKey"];
+            _apiKey = config["Steam:ApiKey"]!;
         }
 
 

@@ -6,6 +6,6 @@
 
         Task<string> ConvertSteamID64(String steamid);
 
-        Task<string> ConvertVanityToSteamID64(String vanityUrl);
+        Task<string?> ConvertVanityToSteamID64(String vanityUrl);
     }
 }
