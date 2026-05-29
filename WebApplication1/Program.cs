@@ -1,10 +1,13 @@
 using WebApplication1.Repository;
 using WebApplication1.services;
 using WebApplication1.Services;
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var apiKey = builder.Configuration["Steam:ApiKey"];
+Env.Load();
+
+builder.Configuration.AddEnvironmentVariables();
 
 // Add services to the container.
 
@@ -16,7 +19,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISteamRepository, SteamRepository>();
-builder.Services.AddScoped<ISteamService, SteamService>();
+
 builder.Services.AddHttpClient<ISteamService, SteamService>();
 
 var app = builder.Build();

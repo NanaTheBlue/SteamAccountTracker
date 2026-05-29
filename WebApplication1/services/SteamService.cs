@@ -14,7 +14,7 @@ namespace WebApplication1.services
         public SteamService(HttpClient client, IConfiguration config)
         {
             _client = client;
-            _apiKey = config["Steam:ApiKey"]!;
+            _apiKey = config["STEAM_API_KEY"]!;
         }
 
 
@@ -33,6 +33,43 @@ namespace WebApplication1.services
 
             return Task.FromResult(steam64.ToString());
         }
+
+
+        public async Task<string?> ResolveSteamID64(string input)
+        {
+            input = input.Trim();
+
+            // Already SteamID64
+            if (input.All(char.IsDigit) && input.Length == 17 && input.StartsWith("7656"))
+            {
+                return input;
+            }
+
+            // Legacy SteamID
+            if (input.StartsWith("STEAM_"))
+            {
+                return await ConvertSteamID64(input);
+            }
+
+            // Vanity URL
+            if (input.Contains("steamcommunity.com/id/"))
+            {
+                return await ConvertVanityToSteamID64(input);
+            }
+
+            // Profile URL
+            if (input.Contains("steamcommunity.com/profiles/"))
+            {
+                var uri = new Uri(input);
+
+                return uri.Segments
+                    .Last()
+                    .Trim('/');
+            }
+
+            return null;
+        }
+
 
 
         public async Task<string?> ConvertVanityToSteamID64(String vanityUrl)

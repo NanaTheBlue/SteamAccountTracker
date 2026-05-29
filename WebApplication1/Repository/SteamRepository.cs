@@ -10,8 +10,8 @@ namespace WebApplication1.Repository
 
         public SteamRepository(IConfiguration config)
         {
-            _connectionString = config.GetConnectionString("Default")
-    ?? throw new InvalidOperationException("Connection string 'Default' not found.");
+            _connectionString = config.GetConnectionString("CONNECTION_STRING")
+    ?? throw new InvalidOperationException("Connection string 'CONNECTION_STRING' not found.");
         }
 
 
