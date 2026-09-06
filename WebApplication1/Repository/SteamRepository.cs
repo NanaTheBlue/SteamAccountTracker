@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Data;
 using WebApplication1.Models;
 
@@ -7,11 +7,13 @@ namespace WebApplication1.Repository
     public class SteamRepository : ISteamRepository
     {
         private readonly string _connectionString;
+        private readonly ILogger<SteamRepository> _logger;
 
-        public SteamRepository(IConfiguration config)
+        public SteamRepository(IConfiguration config, ILogger<SteamRepository> logger)
         {
             _connectionString = config.GetConnectionString("CONNECTION_STRING")
     ?? throw new InvalidOperationException("Connection string 'CONNECTION_STRING' not found.");
+            _logger = logger;
         }
 
 
@@ -81,7 +83,7 @@ namespace WebApplication1.Repository
 
             catch (SqlException e)
             {
-                Console.WriteLine($"SqlException: {e.Message}");
+                _logger.LogError(e, "Failed to track Steam account");
                 throw;
             }
         }
