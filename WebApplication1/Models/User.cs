@@ -1,4 +1,4 @@
-﻿namespace WebApplication1.Models
+namespace WebApplication1.Models
 {
     public class User
     {
@@ -40,6 +40,7 @@
         public bool Success { get; set; }
         public string? ErrorMessage { get; set; }
         public UserDto? User { get; set; }
+        public Guid? SessionId { get; set; }
     }
 
     public class UserDto

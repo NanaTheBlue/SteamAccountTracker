@@ -1,0 +1,25 @@
+# Build outputs
+bin/
+obj/
+
+# User-specific / IDE files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+.idea/
+
+# Secrets & environment files
+.env
+appsettings.Development.json
+
+# NuGet
+*.nupkg
+packages/
+
+# OS files
+.DS_Store
+Thumbs.db
+

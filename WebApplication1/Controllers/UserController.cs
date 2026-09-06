@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WebApplication1.Models;
-using WebApplication1.Repository;
 using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
@@ -9,41 +9,46 @@ namespace WebApplication1.Controllers
     [Route("api/[controller]")]
     public class UserController : ControllerBase
     {
-
         private readonly IUserService _userService;
-            public UserController(IUserService userService)
+        private readonly ILogger<UserController> _logger;
+
+        public UserController(IUserService userService, ILogger<UserController> logger)
         {
             _userService = userService;
+            _logger = logger;
         }
 
-
-
-        [HttpPost]
+        [HttpPost("register")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest registerRequest)
         {
             if (registerRequest == null)
             {
                 return BadRequest("User payload cannot be null.");
             }
-                
+
             try
             {
-                var error = await _userService.RegisterUser(registerRequest);
-                if (error != null)
+                var user = await _userService.RegisterUser(registerRequest);
+                if (user == null)
                 {
-                    return BadRequest("User could not be created.");
+                    return Conflict("An account with this email already exists.");
                 }
-                return Ok("User Register");
+                return Ok(new { message = "User registered successfully.", user });
+            }
+            catch (ArgumentException e)
+            {
+                return BadRequest(e.Message);
             }
             catch (Exception e)
             {
-                Console.WriteLine($"HandlerException: {e.Message}");
+                _logger.LogError(e, "Error during user registration");
                 return StatusCode(500, "An error occurred while creating the user.");
             }
         }
 
-
-        [HttpPost]
+        [HttpPost("login")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
         {
             if (loginRequest == null)
@@ -51,32 +56,45 @@ namespace WebApplication1.Controllers
                 return BadRequest("Request payload cannot be null.");
             }
 
-            try
+            var result = await _userService.LoginUser(loginRequest);
+
+            if (!result.Success)
             {
-                var result = await _userService.LoginUser(loginRequest);
-
-                if (result.Success == false) {
-
-                    return BadRequest(result.ErrorMessage);
-                }
-                
-
-                return Ok("User Login");
+                return BadRequest(result.ErrorMessage);
             }
-            catch (Exception e)
+
+            // Set the session cookie with security flags
+            Response.Cookies.Append("sessionId", result.SessionId!.Value.ToString(), new CookieOptions
             {
-                Console.WriteLine($"HandlerException: {e.Message}");
-                return StatusCode(500, "An error occurred while loging in the user.");
-            }
+                HttpOnly = true,   // Prevents JavaScript access (XSS protection)
+                Secure = true,     // Only sent over HTTPS
+                SameSite = SameSiteMode.Strict, // CSRF protection
+                MaxAge = TimeSpan.FromHours(24),
+                Path = "/"
+            });
+
+            return Ok(new { message = "Login successful.", user = result.User });
         }
 
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            var sessionCookie = Request.Cookies["sessionId"];
+            if (!string.IsNullOrEmpty(sessionCookie) && Guid.TryParse(sessionCookie, out var sessionId))
+            {
+                await _userService.Logout(sessionId);
+            }
 
+            // Clear the cookie regardless
+            Response.Cookies.Delete("sessionId", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Path = "/"
+            });
 
-
-
-
-
-
-
+            return Ok(new { message = "Logged out successfully." });
+        }
     }
 }
