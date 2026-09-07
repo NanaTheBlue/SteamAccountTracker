@@ -22,9 +22,10 @@ namespace WebApplication1.Middleware
         {
             var path = context.Request.Path.Value ?? "";
 
-            // Skip auth for public endpoints and Swagger
+            // Skip auth for public endpoints, Swagger, and internal worker API
             if (PublicPaths.Contains(path) ||
-                path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase))
+                path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/api/internal/", StringComparison.OrdinalIgnoreCase))
             {
                 await _next(context);
                 return;

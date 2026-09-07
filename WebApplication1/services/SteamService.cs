@@ -1,4 +1,4 @@
-﻿
+
 
 using WebApplication1.Models;
 using WebApplication1.Dtos;
@@ -20,18 +20,24 @@ namespace WebApplication1.services
 
 
 
-        public  Task<string> ConvertSteamID64(String steamid)
+        public Task<string?> ConvertSteamID64(string steamid)
         {
             var parts = steamid.Split(':');
 
-            var X = long.Parse(parts[1]);
-            var Y = long.Parse(parts[2].Replace("}", "").Replace("]", ""));
+            if (parts.Length < 3)
+                return Task.FromResult<string?>(null);
+
+            if (!long.TryParse(parts[1], out var X))
+                return Task.FromResult<string?>(null);
+
+            var cleanY = parts[2].Replace("}", "").Replace("]", "");
+            if (!long.TryParse(cleanY, out var Y))
+                return Task.FromResult<string?>(null);
 
             const long baseId = 76561197960265728;
-
             var steam64 = baseId + (Y * 2) + X;
 
-            return Task.FromResult(steam64.ToString());
+            return Task.FromResult<string?>(steam64.ToString());
         }
 
 
@@ -88,7 +94,7 @@ namespace WebApplication1.services
 
             var endpoint =
         $"https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/" +
-        $"?key={_apiKey}&vanityurl={vanityString}";
+        $"?key={_apiKey}&vanityurl={Uri.EscapeDataString(vanityString)}";
 
             var response =
                 await _client.GetFromJsonAsync<SteamVanityResponse>(endpoint);

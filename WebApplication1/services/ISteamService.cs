@@ -1,10 +1,10 @@
-﻿namespace WebApplication1.services
+namespace WebApplication1.services
 {
     public interface ISteamService
     {
 
 
-        Task<string> ConvertSteamID64(String steamid);
+        Task<string?> ConvertSteamID64(String steamid);
 
         Task<string?> ConvertVanityToSteamID64(String vanityUrl);
         Task<string?> ResolveSteamID64(string input);

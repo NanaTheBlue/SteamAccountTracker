@@ -4,7 +4,6 @@ using WebApplication1.Repository;
 using WebApplication1.services;
 using WebApplication1.Services;
 using DotNetEnv;
-using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,21 +29,25 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    options.AddFixedWindowLimiter("auth", limiter =>
-    {
-        limiter.PermitLimit = 10;              // 10 requests
-        limiter.Window = TimeSpan.FromMinutes(1); // per minute
-        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiter.QueueLimit = 0;                // no queuing — reject immediately
-    });
+    options.AddPolicy("auth", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
 });
 
 // CORS — restrict to your frontend origin
+var frontendUrl = builder.Configuration["FRONTEND_URL"] ?? "https://localhost:3000";
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("https://localhost:3000") // TODO: replace with your production frontend URL
+        policy.WithOrigins(frontendUrl)
               .AllowCredentials()
               .AllowAnyHeader()
               .AllowAnyMethod();
@@ -65,6 +68,10 @@ app.UseHttpsRedirection();
 app.UseCors();
 
 app.UseRateLimiter();
+
+// WorkerKeyMiddleware must come before AuthMiddleware so internal
+// API routes are authenticated by shared secret, not session cookie
+app.UseMiddleware<WorkerKeyMiddleware>();
 
 app.UseMiddleware<AuthMiddleware>();
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WebApplication1.Models;
 using WebApplication1.Repository;
 using WebApplication1.services;
@@ -23,6 +24,7 @@ namespace WebApplication1.Controllers
         // Track a Steam account. Accepts any format: SteamID64, legacy STEAM_ID,
         // vanity URL, or full profile URL.
         [HttpPost("track")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> TrackAccount([FromBody] TrackSteamRequest request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.SteamInput))

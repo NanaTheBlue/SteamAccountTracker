@@ -1,0 +1,14 @@
+name = "cheaterwatch-ban-scanner"
+main = "src/index.ts"
+compatibility_date = "2024-09-01"
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+[vars]
+FROM_EMAIL = "alerts@strykz.net"
+# Use `wrangler secret put` for the following sensitive variables:
+# API_BASE_URL  (your production API URL)
+# WORKER_KEY
+# STEAM_API_KEY
+# RESEND_API_KEY
