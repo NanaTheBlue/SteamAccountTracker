@@ -48,9 +48,12 @@ namespace WebApplication1.Tests.Services
         [Theory]
         [InlineData("STEAM_0:0:12345", "76561197960290418")]
         [InlineData("STEAM_0:1:55288880", "76561198070843488")]
+        [InlineData("STEAM_0:1:55288880", "76561198070843489")]
         [InlineData("STEAM_1:1:55288880", "76561198070843489")]
         [InlineData("STEAM_0:1:55288880}", "76561198070843488")]
         [InlineData("STEAM_0:1:55288880]", "76561198070843488")]
+        [InlineData("STEAM_0:1:55288880}", "76561198070843489")]
+        [InlineData("STEAM_0:1:55288880]", "76561198070843489")]
         public async Task ConvertSteamID64_WithValidLegacySteamId_ReturnsCorrectSteamID64(string legacyId, string expectedSteam64)
         {
             var service = CreateService();
@@ -64,6 +67,7 @@ namespace WebApplication1.Tests.Services
         [InlineData("STEAM_0:0")]
         [InlineData("INVALID")]
         [InlineData("STEAM_X:0:12345")]
+        [InlineData("STEAM_0:X:12345")]
         [InlineData("STEAM_0:Y:12345")]
         [InlineData("STEAM_0:0:abc")]
         public async Task ConvertSteamID64_WithInvalidFormat_ReturnsNull(string invalidLegacyId)
@@ -95,6 +99,7 @@ namespace WebApplication1.Tests.Services
             var result = await service.ResolveSteamID64("STEAM_0:1:55288880");
 
             Assert.Equal("76561198070843488", result);
+            Assert.Equal("76561198070843489", result);
         }
 
         [Theory]
