@@ -17,7 +17,24 @@ To run this project locally, you will need:
 
 ## Local Setup
 
-### 1. Backend Web API (`WebApplication1`)
+### 1. Database Setup (SQL Server)
+
+This project requires a SQL Server database.
+
+1. Create a new SQL Server database (e.g., using SQL Server Management Studio, Azure Data Studio, or Docker).
+2. Apply the database migrations found in `WebApplication1/Migrations/` in order:
+   - Run `000_InitialCreate.sql` to create the base tables (`Users`, `SteamAccounts`, `UserSteamAccounts`).
+   - Run `001_AddBanTrackingColumns.sql` to add ban tracking metadata.
+3. Configure your connection string. You can add it to `WebApplication1/appsettings.Development.json` or use .NET User Secrets:
+   ```json
+   {
+     "ConnectionStrings": {
+       "CONNECTION_STRING": "Server=localhost;Database=SteamTracker;User Id=sa;Password=YourPassword123;TrustServerCertificate=True;"
+     }
+   }
+   ```
+
+### 2. Backend Web API (`WebApplication1`)
 
 1.  Navigate to the `WebApplication1` directory:
     ```bash
@@ -36,7 +53,7 @@ To run this project locally, you will need:
     dotnet run
     ```
 
-### 2. Cloudflare Worker (`worker`)
+### 3. Cloudflare Worker (`worker`)
 
 1.  Navigate to the `worker` directory:
     ```bash
