@@ -19,3 +19,4 @@ CREATE TABLE UserSteamAccounts (
     SteamAccountId UNIQUEIDENTIFIER FOREIGN KEY REFERENCES SteamAccounts(Id) ON DELETE CASCADE,
     PRIMARY KEY (UserId, SteamAccountId)
 );
+
