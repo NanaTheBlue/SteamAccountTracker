@@ -126,4 +126,20 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Automatically apply database migrations on startup if connection string is present
+var connectionString = builder.Configuration.GetConnectionString("CONNECTION_STRING")
+    ?? builder.Configuration["CONNECTION_STRING"];
+
+if (!string.IsNullOrWhiteSpace(connectionString))
+{
+    try
+    {
+        await WebApplication1.Migrations.MigrationRunner.ApplyMigrationsAsync(connectionString, app.Logger);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Could not apply database migrations on startup. Ensure SQL Server is reachable.");
+    }
+}
+
 app.Run();
