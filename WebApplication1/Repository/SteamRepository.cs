@@ -13,6 +13,7 @@ namespace WebApplication1.Repository
         public SteamRepository(IConfiguration config, ILogger<SteamRepository> logger)
         {
             _connectionString = config.GetConnectionString("CONNECTION_STRING")
+                ?? config["CONNECTION_STRING"]
                 ?? throw new InvalidOperationException("Connection string 'CONNECTION_STRING' not found.");
             _logger = logger;
         }
@@ -85,6 +86,32 @@ namespace WebApplication1.Repository
             catch (SqlException e)
             {
                 _logger.LogError(e, "Failed to track Steam account");
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteTrackedAccount(string userId, string steamId64)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            try
+            {
+                using var cmd = new SqlCommand(@"
+                    DELETE usa
+                    FROM UserSteamAccounts usa
+                    INNER JOIN SteamAccounts sa ON usa.SteamAccountId = sa.Id
+                    WHERE usa.UserId = @userId AND sa.SteamId64 = @steamId64;", conn);
+
+                cmd.Parameters.Add("@userId", SqlDbType.UniqueIdentifier).Value = Guid.Parse(userId);
+                cmd.Parameters.Add("@steamId64", SqlDbType.NVarChar, 17).Value = steamId64;
+
+                var rows = await cmd.ExecuteNonQueryAsync();
+                return rows > 0;
+            }
+            catch (SqlException e)
+            {
+                _logger.LogError(e, "Failed to delete tracked Steam account {SteamId64} for user {UserId}", steamId64, userId);
                 throw;
             }
         }

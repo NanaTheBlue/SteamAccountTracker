@@ -74,7 +74,6 @@ namespace WebApplication1.Services
                 try
                 {
                     var uri = new Uri(input);
-                    return uri.Segments.Last().Trim('/');
                     var segment = uri.Segments.Last().Trim('/');
                     if (segment.All(char.IsDigit) && segment.Length == 17 && segment.StartsWith("7656"))
                     {
