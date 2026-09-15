@@ -59,7 +59,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: worker
-        run: npm ci
+        run: npm install
 
       - name: Run TypeScript typecheck
         working-directory: worker
