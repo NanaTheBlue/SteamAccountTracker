@@ -365,3 +365,5 @@ FodyWeavers.xsd
 
 
 .env
+# Prevent dev config leak
+appsettings.Development.json

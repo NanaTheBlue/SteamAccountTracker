@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using WebApplication1.Models;
 using WebApplication1.Repository;
-using WebApplication1.services;
+using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {

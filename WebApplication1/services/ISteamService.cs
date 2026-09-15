@@ -1,4 +1,4 @@
-namespace WebApplication1.services
+namespace WebApplication1.Services
 {
     public interface ISteamService
     {

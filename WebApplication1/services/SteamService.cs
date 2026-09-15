@@ -3,7 +3,7 @@
 using WebApplication1.Models;
 using WebApplication1.Dtos;
 
-namespace WebApplication1.services
+namespace WebApplication1.Services
 {
     public class SteamService : ISteamService
     {
@@ -14,7 +14,12 @@ namespace WebApplication1.services
         public SteamService(HttpClient client, IConfiguration config)
         {
             _client = client;
-            _apiKey = config["STEAM_API_KEY"]!;
+            var apiKey = config["STEAM_API_KEY"];
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException("STEAM_API_KEY is not configured.");
+            }
+            _apiKey = apiKey;
         }
 
 
@@ -66,11 +71,15 @@ namespace WebApplication1.services
             // Profile URL
             if (input.Contains("steamcommunity.com/profiles/"))
             {
-                var uri = new Uri(input);
-
-                return uri.Segments
-                    .Last()
-                    .Trim('/');
+                try
+                {
+                    var uri = new Uri(input);
+                    return uri.Segments.Last().Trim('/');
+                }
+                catch (UriFormatException)
+                {
+                    return null;
+                }
             }
 
             return null;
@@ -80,31 +89,25 @@ namespace WebApplication1.services
 
         public async Task<string?> ConvertVanityToSteamID64(String vanityUrl)
         {
-            // Example:
-            // https://steamcommunity.com/id/nanatheblue/
-
-            var uri = new Uri(vanityUrl);
-
-            // Get the last non-empty segment
-            var vanityString = uri.Segments
-                .Last(segment => !string.IsNullOrWhiteSpace(segment))
-                .Trim('/');
-
-
-
-            var endpoint =
-        $"https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/" +
-        $"?key={_apiKey}&vanityurl={Uri.EscapeDataString(vanityString)}";
-
-            var response =
-                await _client.GetFromJsonAsync<SteamVanityResponse>(endpoint);
-
-            if (response?.response?.success == 1)
+            try
             {
-                return response.response.steamid;
-            }
+                var uri = new Uri(vanityUrl);
+                var vanityString = uri.Segments
+                    .Last(segment => !string.IsNullOrWhiteSpace(segment))
+                    .Trim('/');
 
-            return null;
+                var endpoint = $"https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key={_apiKey}&vanityurl={Uri.EscapeDataString(vanityString)}";
+                
+                var response = await _client.GetFromJsonAsync<SteamVanityResponse>(endpoint);
+                if (response?.response?.success == 1)
+                {
+                    return response.response.steamid;
+                }
+                return null;
+            }
+            catch (UriFormatException) { return null; }
+            catch (HttpRequestException) { return null; }
+            catch (System.Text.Json.JsonException) { return null; }
         }
 
 

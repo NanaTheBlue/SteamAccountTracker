@@ -10,7 +10,8 @@ namespace WebApplication1.Middleware
         private static readonly HashSet<string> PublicPaths = new(StringComparer.OrdinalIgnoreCase)
         {
             "/api/user/login",
-            "/api/user/register"
+            "/api/user/register",
+            "/healthz"
         };
 
         public AuthMiddleware(RequestDelegate next)
@@ -18,7 +19,7 @@ namespace WebApplication1.Middleware
             _next = next;
         }
 
-        public async Task Invoke(HttpContext context, IUserService userService)
+        public async Task Invoke(HttpContext context, IUserService userService, ILogger<AuthMiddleware> logger)
         {
             var path = context.Request.Path.Value ?? "";
 
@@ -34,6 +35,7 @@ namespace WebApplication1.Middleware
             var sessionCookie = context.Request.Cookies["sessionId"];
             if (string.IsNullOrEmpty(sessionCookie))
             {
+                logger.LogWarning("Unauthorized access to {Path} from {IP}: No token provided.", path, context.Connection.RemoteIpAddress);
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsync("Unauthorized: No token provided.");
                 return;
@@ -41,6 +43,7 @@ namespace WebApplication1.Middleware
 
             if (!Guid.TryParse(sessionCookie, out var sessionId))
             {
+                logger.LogWarning("Unauthorized access to {Path} from {IP}: Invalid token format.", path, context.Connection.RemoteIpAddress);
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsync("Unauthorized: Invalid token.");
                 return;
@@ -49,6 +52,7 @@ namespace WebApplication1.Middleware
             var user = await userService.GetUserFromSession(sessionId);
             if (user == null)
             {
+                logger.LogWarning("Unauthorized access to {Path} from {IP}: Invalid or expired session.", path, context.Connection.RemoteIpAddress);
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsync("Unauthorized: Invalid or expired session.");
                 return;

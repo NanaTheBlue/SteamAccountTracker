@@ -1,7 +1,6 @@
 using System.Threading.RateLimiting;
 using WebApplication1.Middleware;
 using WebApplication1.Repository;
-using WebApplication1.services;
 using WebApplication1.Services;
 using DotNetEnv;
 
@@ -23,6 +22,39 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISteamRepository, SteamRepository>();
 
 builder.Services.AddHttpClient<ISteamService, SteamService>();
+
+// Health Checks — monitor API and Database health
+builder.Services.AddHealthChecks()
+    .AddAsyncCheck("database", async () =>
+    {
+        var connectionString = builder.Configuration["CONNECTION_STRING"];
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Unhealthy("Connection string is not configured.");
+        }
+        try
+        {
+            using var conn = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
+            await conn.OpenAsync();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT 1";
+            await cmd.ExecuteScalarAsync();
+            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy();
+        }
+        catch (Exception ex)
+        {
+            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Unhealthy(ex.Message);
+        }
+    });
+
+// Request/Response logging for observability
+builder.Services.AddHttpLogging(logging =>
+{
+    logging.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.RequestPath
+                          | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.RequestMethod
+                          | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.ResponseStatusCode
+                          | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.Duration;
+});
 
 // Rate limiting — protect login/register from brute-force
 builder.Services.AddRateLimiter(options =>
@@ -56,6 +88,18 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Security Headers Middleware
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    await next();
+});
+
+app.UseHttpLogging();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -68,6 +112,9 @@ app.UseHttpsRedirection();
 app.UseCors();
 
 app.UseRateLimiter();
+
+// Health check endpoint (probed by orchestrators / load balancers)
+app.MapHealthChecks("/healthz");
 
 // WorkerKeyMiddleware must come before AuthMiddleware so internal
 // API routes are authenticated by shared secret, not session cookie

@@ -38,6 +38,7 @@ namespace WebApplication1.Services
                 var user = await _userRepository.GetUserFromEmail(loginRequest.Email);
                 if (user == null)
                 {
+                    _logger.LogWarning("Login failed: Unknown email {Email}", loginRequest.Email);
                     return new LoginResult { Success = false, ErrorMessage = "Invalid email or password." };
                 }
 
@@ -45,6 +46,7 @@ namespace WebApplication1.Services
 
                 if (!result)
                 {
+                    _logger.LogWarning("Login failed: Wrong password for {Email}", loginRequest.Email);
                     return new LoginResult { Success = false, ErrorMessage = "Invalid email or password." };
                 }
 
@@ -92,6 +94,11 @@ namespace WebApplication1.Services
             if (registerRequest.Password.Length < 10)
             {
                 throw new ArgumentException("Password must be at least 10 characters in length.");
+            }
+
+            if (registerRequest.Username.Length > 50)
+            {
+                throw new ArgumentException("Username must be 50 characters or less.");
             }
 
             // Normalize email to prevent casing duplicates

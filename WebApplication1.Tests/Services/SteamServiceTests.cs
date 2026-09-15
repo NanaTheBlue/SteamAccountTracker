@@ -2,7 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using WebApplication1.Dtos;
-using WebApplication1.services;
+using WebApplication1.Services;
 using Xunit;
 
 namespace WebApplication1.Tests.Services

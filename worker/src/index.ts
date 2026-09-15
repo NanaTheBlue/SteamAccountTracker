@@ -50,6 +50,15 @@ interface NotificationEntry {
   banType: string;
 }
 
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function chunk<T>(array: T[], size: number): T[][] {
   const result: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
@@ -214,11 +223,11 @@ export default {
                 to: [notification.email],
                 subject: `🚨 Ban Detected — Tracked Account ${notification.steamId64}`,
                 html: `
-                  <p>Hi ${notification.username},</p>
+                  <p>Hi ${escapeHtml(notification.username)},</p>
                   <p>A Steam account you're tracking has received a new ban.</p>
-                  <p><strong>Steam ID:</strong> ${notification.steamId64}</p>
-                  <p><strong>Ban type:</strong> ${notification.banType}</p>
-                  <p><a href="https://steamcommunity.com/profiles/${notification.steamId64}">View on Steam</a></p>
+                  <p><strong>Steam ID:</strong> ${escapeHtml(notification.steamId64)}</p>
+                  <p><strong>Ban type:</strong> ${escapeHtml(notification.banType)}</p>
+                  <p><a href="https://steamcommunity.com/profiles/${escapeHtml(notification.steamId64)}">View on Steam</a></p>
                   <p>— CheaterWatch</p>
                 `,
               }),
