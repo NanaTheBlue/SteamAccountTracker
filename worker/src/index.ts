@@ -84,7 +84,6 @@ async function apiRequest<T>(url: string, env: Env, options?: RequestInit): Prom
   return response.json() as Promise<T>;
 }
 
-function shouldStop(requestCount: number, startTime: number, maxRequests: number): boolean {
 export function shouldStop(requestCount: number, startTime: number, maxRequests: number): boolean {
   return requestCount >= maxRequests || Date.now() - startTime > 13 * 60 * 1000;
 }
