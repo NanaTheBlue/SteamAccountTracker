@@ -50,7 +50,6 @@ interface NotificationEntry {
   banType: string;
 }
 
-function escapeHtml(unsafe: string): string {
 export function escapeHtml(unsafe: string): string {
   return unsafe
     .replace(/&/g, "&amp;")
@@ -60,7 +59,6 @@ export function escapeHtml(unsafe: string): string {
     .replace(/'/g, "&#039;");
 }
 
-function chunk<T>(array: T[], size: number): T[][] {
 export function chunk<T>(array: T[], size: number): T[][] {
   const result: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
