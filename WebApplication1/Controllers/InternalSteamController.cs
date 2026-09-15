@@ -29,6 +29,15 @@ namespace WebApplication1.Controllers
         [HttpGet("accounts-to-scan")]
         public async Task<IActionResult> GetAccountsToScan([FromQuery] int offset = 0, [FromQuery] int limit = 1000)
         {
+            if (offset < 0)
+            {
+                return BadRequest("Offset must be non-negative.");
+            }
+            if (limit <= 0)
+            {
+                return BadRequest("Limit must be greater than zero.");
+            }
+
             // Cap limit to prevent abuse
             limit = Math.Min(limit, 5000);
 
@@ -56,13 +65,23 @@ namespace WebApplication1.Controllers
                 return BadRequest("No updates provided.");
             }
 
+            // Validate individual update items
+            var validUpdates = request.Updates
+                .Where(u => !string.IsNullOrWhiteSpace(u.SteamId64) && u.SteamId64.Trim().Length == 17 && u.SteamId64.Trim().All(char.IsDigit))
+                .ToList();
+
+            if (validUpdates.Count == 0)
+            {
+                return BadRequest("No valid updates provided. Each entry must have a valid 17-digit numeric SteamId64.");
+            }
+
             try
             {
-                var notifications = await _steamRepository.UpdateBanStatusAndGetNotifications(request.Updates);
+                var notifications = await _steamRepository.UpdateBanStatusAndGetNotifications(validUpdates);
 
                 _logger.LogInformation(
-                    "Processed {UpdateCount} ban updates, {NotificationCount} notifications to send",
-                    request.Updates.Count, notifications.Count);
+                    "Processed {UpdateCount} ban updates ({ValidCount} valid), {NotificationCount} notifications to send",
+                    request.Updates.Count, validUpdates.Count, notifications.Count);
 
                 return Ok(new BanUpdateResponse { Notifications = notifications });
             }
@@ -74,4 +93,3 @@ namespace WebApplication1.Controllers
         }
     }
 }
-

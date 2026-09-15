@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using WebApplication1.Dtos;
 using WebApplication1.Models;
 using WebApplication1.Repository;
 using WebApplication1.Services;
@@ -19,7 +20,7 @@ namespace WebApplication1.Controllers
             _steamService = steamService;
             _steamRepository = steamRepository;
             _logger = logger;
-        } 
+        }
 
         // Track a Steam account. Accepts any format: SteamID64, legacy STEAM_ID,
         // vanity URL, or full profile URL.
@@ -57,16 +58,37 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, "An error occurred while tracking the Steam account.");
             }
         }
-    }
 
-    public class TrackSteamRequest
-    {
-    
-        // Any Steam identifier: SteamID64, legacy STEAM_ID (STEAM_X:Y:Z),
-        // vanity URL (https://steamcommunity.com/id/name), or profile URL
-        // (https://steamcommunity.com/profiles/12345).
-    
-        public required string SteamInput { get; set; }
+        // Untrack a Steam account by its SteamID64
+        [HttpDelete("track/{steamId64}")]
+        public async Task<IActionResult> UntrackAccount(string steamId64)
+        {
+            if (string.IsNullOrWhiteSpace(steamId64))
+            {
+                return BadRequest("SteamID64 is required.");
+            }
+
+            var user = HttpContext.Items["User"] as AuthenticatedUser;
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                var removed = await _steamRepository.DeleteTrackedAccount(user.Id.ToString(), steamId64.Trim());
+                if (!removed)
+                {
+                    return NotFound(new { message = "Account was not being tracked by this user." });
+                }
+
+                return Ok(new { message = "Account untracked successfully." });
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Failed to untrack Steam account {SteamId64} for user {UserId}", steamId64, user.Id);
+                return StatusCode(500, "An error occurred while untracking the Steam account.");
+            }
+        }
     }
 }
-

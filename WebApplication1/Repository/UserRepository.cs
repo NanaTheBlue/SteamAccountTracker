@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using System.Data;
+using WebApplication1.Dtos;
 using WebApplication1.Models;
 
 namespace WebApplication1.Repository
