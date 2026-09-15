@@ -9,6 +9,7 @@ on:
 
 jobs:
   build-and-test:
+  dotnet-build-and-test:
     name: Build & Test (.NET)
     runs-on: ubuntu-latest
 
@@ -29,6 +30,11 @@ jobs:
 
       - name: Run unit tests
         run: dotnet test WebApplication1.sln --configuration Release --no-build --verbosity normal --logger "trx" --results-directory "TestResults"
+      - name: Security audit dependencies
+        run: dotnet list package --vulnerable --include-transitive
+
+      - name: Run unit tests with code coverage
+        run: dotnet test WebApplication1.sln --configuration Release --no-build --verbosity normal --logger "trx" --results-directory "TestResults" --collect:"XPlat Code Coverage"
 
       - name: Upload test results
         if: always()
@@ -36,5 +42,33 @@ jobs:
         with:
           name: test-results
           path: TestResults/*.trx
+          path: TestResults/
           if-no-files-found: ignore
 
+      - name: Validate Docker image build
+        run: docker build -t cheaterwatch-api:ci -f WebApplication1/Dockerfile .
+
+  worker-build-and-test:
+    name: Typecheck & Test (Cloudflare Worker)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: worker
+        run: npm ci
+
+      - name: Run TypeScript typecheck
+        working-directory: worker
+        run: npm run typecheck
+
+      - name: Run Worker tests
+        working-directory: worker
+        run: npm test

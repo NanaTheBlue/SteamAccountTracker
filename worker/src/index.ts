@@ -51,6 +51,7 @@ interface NotificationEntry {
 }
 
 function escapeHtml(unsafe: string): string {
+export function escapeHtml(unsafe: string): string {
   return unsafe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -60,6 +61,7 @@ function escapeHtml(unsafe: string): string {
 }
 
 function chunk<T>(array: T[], size: number): T[][] {
+export function chunk<T>(array: T[], size: number): T[][] {
   const result: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
     result.push(array.slice(i, i + size));
@@ -85,6 +87,7 @@ async function apiRequest<T>(url: string, env: Env, options?: RequestInit): Prom
 }
 
 function shouldStop(requestCount: number, startTime: number, maxRequests: number): boolean {
+export function shouldStop(requestCount: number, startTime: number, maxRequests: number): boolean {
   return requestCount >= maxRequests || Date.now() - startTime > 13 * 60 * 1000;
 }
 
