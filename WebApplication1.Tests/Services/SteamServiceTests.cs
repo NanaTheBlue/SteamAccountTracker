@@ -177,6 +177,27 @@ namespace WebApplication1.Tests.Services
 
             Assert.Null(result);
         }
+
+        [Fact]
+        public async Task ResolveSteamID64_WithMalformedUri_ReturnsNullWithoutThrowing()
+        {
+            var service = CreateService();
+
+            var result = await service.ResolveSteamID64("https://steamcommunity.com/profiles/bad:url:path:::123");
+
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public void Constructor_WithMissingApiKey_ThrowsInvalidOperationException()
+        {
+            var emptyConfig = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>())
+                .Build();
+            var client = new HttpClient();
+
+            Assert.Throws<InvalidOperationException>(() => new SteamService(client, emptyConfig));
+        }
     }
 }
 

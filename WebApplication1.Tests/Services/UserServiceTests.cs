@@ -261,6 +261,20 @@ namespace WebApplication1.Tests.Services
 
             Assert.Equal(sessionId, invalidatedId);
         }
+
+        [Fact]
+        public async Task RegisterUser_WithUsernameExceeding50Chars_ThrowsArgumentException()
+        {
+            var request = new RegisterRequest
+            {
+                Username = new string('a', 51),
+                Email = "valid@example.com",
+                Password = "Password123!"
+            };
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.RegisterUser(request));
+            Assert.Contains("50 characters or less", ex.Message);
+        }
     }
 }
 
