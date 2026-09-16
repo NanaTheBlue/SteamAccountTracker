@@ -81,12 +81,16 @@ Let it propagate (usually a few minutes). Caddy won't be able to get a TLS cert 
 
 ---
 
-## 7. Clone the Repo on the Server
+## 7. Download the Compose Files
+
+The server only needs two files — pull them straight from GitHub:
 
 ```bash
 mkdir -p /opt/cheaterwatch
-git clone https://github.com/<your-username>/cheaterwatch.git /opt/cheaterwatch
-cd /opt/cheaterwatch
+curl -o /opt/cheaterwatch/docker-compose.prod.yml \
+  https://raw.githubusercontent.com/NanaTheBlue/SteamAccountTracker/master/docker-compose.prod.yml
+curl -o /opt/cheaterwatch/Caddyfile \
+  https://raw.githubusercontent.com/NanaTheBlue/SteamAccountTracker/master/Caddyfile
 ```
 
 ---
@@ -100,6 +104,10 @@ nano /opt/cheaterwatch/.env
 Paste and fill in real values:
 
 ```env
+# Docker image from GitHub Container Registry
+# Replace with your actual GitHub username and repo name
+API_IMAGE=ghcr.io/nanatherblue/steamaccounttracker:latest
+
 # Your domain (used by Caddy for TLS)
 DOMAIN=your-domain.com
 
@@ -112,7 +120,7 @@ STEAM_API_KEY=your_steam_api_key
 # Random secret shared with the Cloudflare Worker
 WORKER_KEY=generate-a-random-secret-here
 
-# Your frontend URL (Cloudflare Pages URL or custom domain)
+# Your frontend URL
 FRONTEND_URL=https://your-frontend.com
 ```
 
@@ -121,13 +129,20 @@ Generate a random secret for `WORKER_KEY`:
 openssl rand -hex 32
 ```
 
+> **Note**: If your GitHub repo is private, log in to ghcr.io on the server first:
+> ```bash
+> echo YOUR_GITHUB_PAT | docker login ghcr.io -u YOUR_GITHUB_USERNAME --stdin
+> ```
+> Public repos don't need this.
+
 ---
 
 ## 9. First Deploy
 
 ```bash
 cd /opt/cheaterwatch
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 Watch the logs:
@@ -155,9 +170,9 @@ Caddy will automatically obtain a Let's Encrypt certificate on first request. Al
 After this setup, every push to `master`:
 
 1. GitHub Actions runs all CI tests
-2. If tests pass, it SSHes into your server as `root`
-3. Runs `git pull && docker compose -f docker-compose.prod.yml up -d --build`
-4. Old containers are replaced with zero manual intervention
+2. Builds and pushes a new Docker image to `ghcr.io` (tagged `:latest` and `:<git-sha>`)
+3. SSHes into your server and runs `docker compose pull && docker compose up -d`
+4. Old containers are replaced — the server never compiles anything
 
 You can watch deployments in **GitHub → Actions → CI/CD**.
 
@@ -165,12 +180,17 @@ You can watch deployments in **GitHub → Actions → CI/CD**.
 
 ## Rollback
 
-If a bad deploy goes out:
+Every deploy is also tagged with the git SHA on ghcr.io, so rolling back is just pointing to an older image:
 
 ```bash
+# On your local machine — find the SHA you want to roll back to
+git log --oneline -10
+
+# On the server
 ssh root@<your-server-ip>
-cd /opt/cheaterwatch
-git log --oneline -10          # find the last good commit
-git checkout <good-sha>
-docker compose -f docker-compose.prod.yml up -d --build
+nano /opt/cheaterwatch/.env
+# Change: API_IMAGE=ghcr.io/your-username/cheaterwatch:<old-sha>
+
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
 ```

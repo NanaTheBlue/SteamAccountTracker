@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <RollForward>Major</RollForward>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,3 +26,4 @@
   </ItemGroup>
 
 </Project>
+

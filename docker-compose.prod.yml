@@ -18,9 +18,7 @@ services:
     restart: unless-stopped
 
   api:
-    build:
-      context: .
-      dockerfile: WebApplication1/Dockerfile
+    image: ${API_IMAGE}
     container_name: cheaterwatch-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Production

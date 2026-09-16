@@ -41,9 +41,6 @@ jobs:
           path: TestResults/
           if-no-files-found: ignore
 
-      - name: Validate Docker image build
-        run: docker build -t cheaterwatch-api:ci -f WebApplication1/Dockerfile .
-
   worker-build-and-test:
     name: Typecheck & Test (Cloudflare Worker)
     runs-on: ubuntu-latest
@@ -69,11 +66,40 @@ jobs:
         working-directory: worker
         run: npm test
 
-  deploy:
-    name: Deploy to Hetzner
+  publish:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
     needs: [dotnet-build-and-test, worker-build-and-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: WebApplication1/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+  deploy:
+    name: Deploy to DigitalOcean
+    runs-on: ubuntu-latest
+    needs: [publish]
 
     steps:
       - name: Deploy via SSH
@@ -85,7 +111,8 @@ jobs:
           script: |
             set -e
             cd /opt/cheaterwatch
-            git pull origin master
-            docker compose -f docker-compose.prod.yml up -d --build
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
             docker system prune -f --volumes=false
             echo "Deploy complete"
+
