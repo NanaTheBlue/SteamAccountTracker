@@ -66,10 +66,35 @@ jobs:
         working-directory: worker
         run: npm test
 
+  frontend-build:
+    name: Build Frontend (React)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Run TypeScript typecheck
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build production bundle
+        working-directory: frontend
+        run: npm run build
+
   publish:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    needs: [dotnet-build-and-test, worker-build-and-test]
+    needs: [dotnet-build-and-test, worker-build-and-test, frontend-build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     permissions:
       contents: read

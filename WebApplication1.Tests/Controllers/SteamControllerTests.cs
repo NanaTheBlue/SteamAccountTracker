@@ -14,6 +14,7 @@ namespace WebApplication1.Tests.Controllers
     {
         public Func<string, string, Task>? TrackSteamAccountHandler { get; set; }
         public Func<string, string, Task<bool>>? DeleteTrackedAccountHandler { get; set; }
+        public Func<string, Task<List<TrackedAccountDto>>>? GetTrackedAccountsByUserHandler { get; set; }
         public Func<int, int, Task<List<TrackedAccountDto>>>? GetAllTrackedAccountsHandler { get; set; }
         public Func<List<BanUpdateEntry>, Task<List<NotificationEntry>>>? UpdateBanStatusHandler { get; set; }
 
@@ -22,6 +23,9 @@ namespace WebApplication1.Tests.Controllers
 
         public Task<bool> DeleteTrackedAccount(string userId, string steamId64) =>
             DeleteTrackedAccountHandler != null ? DeleteTrackedAccountHandler(userId, steamId64) : Task.FromResult(true);
+
+        public Task<List<TrackedAccountDto>> GetTrackedAccountsByUser(string userId) =>
+            GetTrackedAccountsByUserHandler != null ? GetTrackedAccountsByUserHandler(userId) : Task.FromResult(new List<TrackedAccountDto>());
 
         public Task<List<TrackedAccountDto>> GetAllTrackedAccounts(int offset, int limit) =>
             GetAllTrackedAccountsHandler != null ? GetAllTrackedAccountsHandler(offset, limit) : Task.FromResult(new List<TrackedAccountDto>());

@@ -116,6 +116,52 @@ namespace WebApplication1.Repository
             }
         }
 
+        public async Task<List<TrackedAccountDto>> GetTrackedAccountsByUser(string userId)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            try
+            {
+                using var cmd = new SqlCommand(@"
+                    SELECT sa.SteamId64, sa.VACBanned, sa.NumberOfVACBans, sa.NumberOfGameBans, sa.CommunityBanned
+                    FROM SteamAccounts sa
+                    INNER JOIN UserSteamAccounts usa ON sa.Id = usa.SteamAccountId
+                    WHERE usa.UserId = @userId
+                    ORDER BY sa.SteamId64;", conn);
+
+                cmd.Parameters.Add("@userId", SqlDbType.UniqueIdentifier).Value = Guid.Parse(userId);
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                var accounts = new List<TrackedAccountDto>();
+
+                var steamId64Ord = reader.GetOrdinal("SteamId64");
+                var vacBannedOrd = reader.GetOrdinal("VACBanned");
+                var numVacOrd = reader.GetOrdinal("NumberOfVACBans");
+                var numGameOrd = reader.GetOrdinal("NumberOfGameBans");
+                var communityOrd = reader.GetOrdinal("CommunityBanned");
+
+                while (await reader.ReadAsync())
+                {
+                    accounts.Add(new TrackedAccountDto
+                    {
+                        SteamId64 = reader.GetString(steamId64Ord),
+                        VACBanned = reader.GetBoolean(vacBannedOrd),
+                        NumberOfVACBans = reader.GetInt32(numVacOrd),
+                        NumberOfGameBans = reader.GetInt32(numGameOrd),
+                        CommunityBanned = reader.GetBoolean(communityOrd)
+                    });
+                }
+
+                return accounts;
+            }
+            catch (SqlException e)
+            {
+                _logger.LogError(e, "Failed to get tracked accounts for user {UserId}", userId);
+                throw;
+            }
+        }
+
         public async Task<List<TrackedAccountDto>> GetAllTrackedAccounts(int offset, int limit)
         {
             using var conn = new SqlConnection(_connectionString);

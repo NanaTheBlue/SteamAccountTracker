@@ -22,6 +22,28 @@ namespace WebApplication1.Controllers
             _logger = logger;
         }
 
+        // Get all Steam accounts tracked by the authenticated user
+        [HttpGet("tracked")]
+        public async Task<IActionResult> GetTrackedAccounts()
+        {
+            var user = HttpContext.Items["User"] as AuthenticatedUser;
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                var accounts = await _steamRepository.GetTrackedAccountsByUser(user.Id.ToString());
+                return Ok(new { accounts });
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Failed to fetch tracked accounts for user {UserId}", user.Id);
+                return StatusCode(500, "An error occurred while fetching tracked accounts.");
+            }
+        }
+
         // Track a Steam account. Accepts any format: SteamID64, legacy STEAM_ID,
         // vanity URL, or full profile URL.
         [HttpPost("track")]
