@@ -65,8 +65,9 @@ In your GitHub repo → **Settings → Secrets and variables → Actions → New
 
 | Secret name | Value |
 |---|---|
-| `SERVER_HOST` | Your droplet IP (e.g. `123.456.789.0`) |
+| `SERVER_HOST` | Your server IP (e.g. `123.456.789.0`) |
 | `SERVER_SSH_PRIVATE_KEY` | Contents of `~/.ssh/cheaterwatch_deploy` (the private key file) |
+| `SERVER_PASSWORD` | Your server's root password |
 
 ---
 
