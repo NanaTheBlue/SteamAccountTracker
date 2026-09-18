@@ -219,7 +219,7 @@ export default {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                from: `CheaterWatch <${env.FROM_EMAIL || 'alerts@strykz.net'}>`,
+                from: `CheaterWatch <${env.FROM_EMAIL || 'alerts@cheaterwatch.com'}>`,
                 to: [notification.email],
                 subject: `🚨 Ban Detected — Tracked Account ${notification.steamId64}`,
                 html: `
