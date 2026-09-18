@@ -75,11 +75,19 @@ builder.Services.AddRateLimiter(options =>
 
 // CORS — restrict to your frontend origin
 var frontendUrl = builder.Configuration["FRONTEND_URL"] ?? "https://localhost:3000";
+// CORS — restrict to your frontend origin(s). Supports comma-separated values.
+var frontendUrlConfig = builder.Configuration["FRONTEND_URL"] ?? "https://localhost:3000";
+var allowedOrigins = frontendUrlConfig
+    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+    .Select(u => u.Trim().TrimEnd('/'))
+    .ToArray();
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins(frontendUrl)
+        policy.WithOrigins(allowedOrigins)
               .AllowCredentials()
               .AllowAnyHeader()
               .AllowAnyMethod();
