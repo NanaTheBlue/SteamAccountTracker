@@ -1,9 +1,12 @@
+import { withSentry } from '@sentry/cloudflare';
+
 interface Env {
   API_BASE_URL: string;
   WORKER_KEY: string;
   STEAM_API_KEY: string;
   RESEND_API_KEY: string;
   FROM_EMAIL: string;
+  SENTRY_DSN?: string;
 }
 
 interface TrackedAccount {
@@ -88,7 +91,11 @@ export function shouldStop(requestCount: number, startTime: number, maxRequests:
   return requestCount >= maxRequests || Date.now() - startTime > 13 * 60 * 1000;
 }
 
-export default {
+export default withSentry(
+  (env) => ({
+    dsn: env.SENTRY_DSN,
+  }),
+  {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     return new Response(JSON.stringify({ status: 'ok', worker: 'cheaterwatch-ban-scanner' }), {
       headers: { 'Content-Type': 'application/json' },
@@ -251,6 +258,7 @@ export default {
       console.log(`[scheduled] Done. ${emailsSent}/${notifications.length} emails sent. ${requestCount} total API requests.`);
     } catch (error) {
       console.error(`[scheduled] Worker failed: ${error}`);
+      throw error; // Let Sentry catch it
     }
   },
-};
+});

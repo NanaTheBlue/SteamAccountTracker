@@ -6,6 +6,14 @@ using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.UseSentry(o =>
+{
+    // Try to get DSN from environment, fall back to empty (Sentry disabled if empty)
+    o.Dsn = Environment.GetEnvironmentVariable("SENTRY_DSN") ?? builder.Configuration["SENTRY_DSN"] ?? "";
+    o.Debug = builder.Environment.IsDevelopment();
+    o.TracesSampleRate = 1.0;
+});
+
 Env.Load();
 
 builder.Configuration.AddEnvironmentVariables();
