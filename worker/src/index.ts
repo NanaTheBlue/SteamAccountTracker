@@ -92,22 +92,22 @@ export function shouldStop(requestCount: number, startTime: number, maxRequests:
 }
 
 export default withSentry(
-  (env) => ({
+  (env: Env) => ({
     dsn: env.SENTRY_DSN,
   }),
   {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request, env, ctx) {
     return new Response(JSON.stringify({ status: 'ok', worker: 'cheaterwatch-ban-scanner' }), {
       headers: { 'Content-Type': 'application/json' },
     });
   },
 
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(controller, env, ctx) {
     const MAX_REQUESTS = 40;
     let requestCount = 0;
     const startTime = Date.now();
 
-    console.log(`[scheduled] Starting ban scan at ${new Date(event.scheduledTime).toISOString()}`);
+    console.log(`[scheduled] Starting ban scan at ${new Date(controller.scheduledTime).toISOString()}`);
 
     try {
       // 1. Fetch accounts with pagination
