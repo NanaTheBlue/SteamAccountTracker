@@ -12,14 +12,14 @@ namespace WebApplication1.Tests.Controllers
 {
     public class FakeSteamRepository : ISteamRepository
     {
-        public Func<string, string, Task>? TrackSteamAccountHandler { get; set; }
+        public Func<string, string, Task<bool>>? TrackSteamAccountHandler { get; set; }
         public Func<string, string, Task<bool>>? DeleteTrackedAccountHandler { get; set; }
         public Func<string, Task<List<TrackedAccountDto>>>? GetTrackedAccountsByUserHandler { get; set; }
         public Func<int, int, Task<List<TrackedAccountDto>>>? GetAllTrackedAccountsHandler { get; set; }
         public Func<List<BanUpdateEntry>, Task<List<NotificationEntry>>>? UpdateBanStatusHandler { get; set; }
 
-        public Task TrackSteamAccount(string userId, string steamId64) =>
-            TrackSteamAccountHandler != null ? TrackSteamAccountHandler(userId, steamId64) : Task.CompletedTask;
+        public Task<bool> TrackSteamAccount(string userId, string steamId64) =>
+            TrackSteamAccountHandler != null ? TrackSteamAccountHandler(userId, steamId64) : Task.FromResult(true);
 
         public Task<bool> DeleteTrackedAccount(string userId, string steamId64) =>
             DeleteTrackedAccountHandler != null ? DeleteTrackedAccountHandler(userId, steamId64) : Task.FromResult(true);
