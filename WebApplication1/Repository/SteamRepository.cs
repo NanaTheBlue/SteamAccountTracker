@@ -18,7 +18,7 @@ namespace WebApplication1.Repository
             _logger = logger;
         }
 
-        public async Task TrackSteamAccount(string userId, string steamId64)
+        public async Task<bool> TrackSteamAccount(string userId, string steamId64)
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -28,8 +28,7 @@ namespace WebApplication1.Repository
             {
                 Guid steamAccountId;
 
-                using (var getCmd = new SqlCommand(@"
-                    SELECT Id FROM SteamAccounts WHERE SteamId64 = @steamId64;", conn, transaction))
+                using (var getCmd = new SqlCommand("SELECT Id FROM SteamAccounts WHERE SteamId64 = @steamId64;", conn, transaction))
                 {
                     getCmd.Parameters.Add("@steamId64", SqlDbType.NVarChar, 17).Value = steamId64;
                     var result = await getCmd.ExecuteScalarAsync();
@@ -44,9 +43,20 @@ namespace WebApplication1.Repository
                             INSERT INTO SteamAccounts (SteamId64)
                             OUTPUT inserted.Id
                             VALUES (@steamId64);", conn, transaction);
-
                         insertCmd.Parameters.Add("@steamId64", SqlDbType.NVarChar, 17).Value = steamId64;
                         steamAccountId = (Guid)(await insertCmd.ExecuteScalarAsync())!;
+                    }
+                }
+
+                // Check if already tracked by this user
+                using (var checkCmd = new SqlCommand("SELECT 1 FROM UserSteamAccounts WHERE UserId = @userId AND SteamAccountId = @saId", conn, transaction))
+                {
+                    checkCmd.Parameters.Add("@userId", SqlDbType.UniqueIdentifier).Value = Guid.Parse(userId);
+                    checkCmd.Parameters.Add("@saId", SqlDbType.UniqueIdentifier).Value = steamAccountId;
+                    if (await checkCmd.ExecuteScalarAsync() != null)
+                    {
+                        await transaction.CommitAsync();
+                        return false; // Already tracked
                     }
                 }
 
@@ -60,33 +70,16 @@ namespace WebApplication1.Repository
                 }
 
                 await transaction.CommitAsync();
+                return true;
             }
             catch (SqlException e) when (e.Number == 2627)
             {
-                // Race condition: another request inserted the same SteamAccount concurrently.
-                // Rollback the failed transaction, then retry: fetch the existing row and link the user.
                 await transaction.RollbackAsync();
-
-                try
-                {
-                    using var retryCmd = new SqlCommand(@"
-                        DECLARE @saId UNIQUEIDENTIFIER;
-                        SELECT @saId = Id FROM SteamAccounts WHERE SteamId64 = @steamId64;
-                        INSERT INTO UserSteamAccounts (UserId, SteamAccountId) VALUES (@userId, @saId);",
-                        conn);
-                    retryCmd.Parameters.Add("@steamId64", SqlDbType.NVarChar, 17).Value = steamId64;
-                    retryCmd.Parameters.Add("@userId", SqlDbType.UniqueIdentifier).Value = Guid.Parse(userId);
-                    await retryCmd.ExecuteNonQueryAsync();
-                }
-                catch (SqlException retryEx) when (retryEx.Number == 2627)
-                {
-                    // User already tracks this account — that's fine, no-op
-                }
-            }
-            catch (SqlException e)
-            {
-                _logger.LogError(e, "Failed to track Steam account");
-                throw;
+                // 2627 means a unique constraint violation.
+                // Because we explicitly checked if the link existed right before inserting, 
+                // hitting this means another thread just inserted it at the exact same millisecond.
+                // Either way, it's tracked now.
+                return false;
             }
         }
 

@@ -71,7 +71,13 @@ namespace WebApplication1.Controllers
 
             try
             {
-                await _steamRepository.TrackSteamAccount(user.Id.ToString(), steamId64);
+                var isNewlyTracked = await _steamRepository.TrackSteamAccount(user.Id.ToString(), steamId64);
+                
+                if (!isNewlyTracked)
+                {
+                    return Conflict(new { message = "You are already tracking this Steam account." });
+                }
+
                 return Ok(new { message = "Steam account is now being tracked.", steamId64 });
             }
             catch (Exception e)
