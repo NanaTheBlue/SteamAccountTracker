@@ -2,7 +2,7 @@ import { NavLink, Link, useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 
 export function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -20,7 +20,12 @@ export function Navbar() {
             </Link>
           </div>
           <div className="flex items-center space-x-4">
-            {user ? (
+            {loading ? (
+              <div className="flex space-x-4 animate-pulse">
+                <div className="h-9 w-16 bg-gray-800 rounded-md hidden sm:block"></div>
+                <div className="h-9 w-20 bg-gray-800 rounded-md"></div>
+              </div>
+            ) : user ? (
               <>
                 <NavLink 
                   to="/dashboard" 
