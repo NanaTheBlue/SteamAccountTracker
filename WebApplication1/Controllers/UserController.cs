@@ -50,7 +50,7 @@ namespace WebApplication1.Controllers
                         HttpOnly = true,
                         Secure = true,
                         SameSite = SameSiteMode.Strict,
-                        MaxAge = TimeSpan.FromHours(24),
+                        MaxAge = TimeSpan.FromDays(30),
                         Path = "/"
                     });
                 }
@@ -90,7 +90,7 @@ namespace WebApplication1.Controllers
                 HttpOnly = true,   // Prevents JavaScript access (XSS protection)
                 Secure = true,     // Only sent over HTTPS
                 SameSite = SameSiteMode.Strict, // CSRF protection
-                MaxAge = TimeSpan.FromHours(24),
+                MaxAge = TimeSpan.FromDays(30),
                 Path = "/"
             });
 

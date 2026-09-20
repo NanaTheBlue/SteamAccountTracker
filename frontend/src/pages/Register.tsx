@@ -34,8 +34,6 @@ export function Register() {
     setIsLoading(true);
     try {
       await register(username, email, password);
-      // On success, redirect to login with a success state/message via state
-      navigate('/login', { state: { message: 'Registration successful! Please sign in.' } });
       // On success, redirect directly to dashboard since they are now auto-logged in
       navigate('/dashboard');
     } catch (err) {

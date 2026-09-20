@@ -9,7 +9,7 @@ namespace WebApplication1.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly ILogger<UserService> _logger;
-        private static readonly TimeSpan SessionDuration = TimeSpan.FromHours(24);
+        private static readonly TimeSpan SessionDuration = TimeSpan.FromDays(30);
 
         public UserService(IUserRepository userRepository, ILogger<UserService> logger)
         {
