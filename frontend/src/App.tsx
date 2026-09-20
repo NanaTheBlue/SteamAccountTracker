@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { Landing } from './pages/Landing';
 import { Dashboard } from './pages/Dashboard';
 import { TrackAccount } from './pages/TrackAccount';
 import { Login } from './pages/Login';
@@ -13,7 +14,7 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   
   if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/dashboard" replace />;
   
   return <>{children}</>;
 }
@@ -26,13 +27,16 @@ export default function App() {
           <Navbar />
           <main className="flex-grow">
             <Routes>
-              {/* Public routes (redirect to / if logged in) */}
+              {/* Public route for everyone, but redirects to dashboard if logged in */}
+              <Route path="/" element={<Landing />} />
+              
+              {/* Public only (redirect to /dashboard if logged in) */}
               <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
               <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
 
               {/* Protected routes */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/track" element={<TrackAccount />} />
               </Route>
 
