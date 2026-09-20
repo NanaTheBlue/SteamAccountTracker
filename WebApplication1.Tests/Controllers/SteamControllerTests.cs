@@ -17,6 +17,7 @@ namespace WebApplication1.Tests.Controllers
         public Func<string, Task<List<TrackedAccountDto>>>? GetTrackedAccountsByUserHandler { get; set; }
         public Func<int, int, Task<List<TrackedAccountDto>>>? GetAllTrackedAccountsHandler { get; set; }
         public Func<List<BanUpdateEntry>, Task<List<NotificationEntry>>>? UpdateBanStatusHandler { get; set; }
+        public Func<List<string>, Task>? UpdateLastScannedAtHandler { get; set; }
 
         public Task<bool> TrackSteamAccount(string userId, string steamId64) =>
             TrackSteamAccountHandler != null ? TrackSteamAccountHandler(userId, steamId64) : Task.FromResult(true);
@@ -32,6 +33,9 @@ namespace WebApplication1.Tests.Controllers
 
         public Task<List<NotificationEntry>> UpdateBanStatusAndGetNotifications(List<BanUpdateEntry> updates) =>
             UpdateBanStatusHandler != null ? UpdateBanStatusHandler(updates) : Task.FromResult(new List<NotificationEntry>());
+
+        public Task UpdateLastScannedAt(List<string> steamId64s) =>
+            UpdateLastScannedAtHandler != null ? UpdateLastScannedAtHandler(steamId64s) : Task.CompletedTask;
     }
 
     public class FakeSteamService : ISteamService

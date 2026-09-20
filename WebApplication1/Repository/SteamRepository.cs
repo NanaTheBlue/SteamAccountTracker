@@ -117,7 +117,8 @@ namespace WebApplication1.Repository
             try
             {
                 using var cmd = new SqlCommand(@"
-                    SELECT sa.SteamId64, sa.VACBanned, sa.NumberOfVACBans, sa.NumberOfGameBans, sa.CommunityBanned
+                    SELECT sa.SteamId64, sa.VACBanned, sa.NumberOfVACBans, sa.NumberOfGameBans, sa.CommunityBanned,
+                           (SELECT COUNT(*) FROM UserSteamAccounts WHERE SteamAccountId = sa.Id) AS TrackersCount
                     FROM SteamAccounts sa
                     INNER JOIN UserSteamAccounts usa ON sa.Id = usa.SteamAccountId
                     WHERE usa.UserId = @userId
@@ -133,6 +134,7 @@ namespace WebApplication1.Repository
                 var numVacOrd = reader.GetOrdinal("NumberOfVACBans");
                 var numGameOrd = reader.GetOrdinal("NumberOfGameBans");
                 var communityOrd = reader.GetOrdinal("CommunityBanned");
+                var trackersCountOrd = reader.GetOrdinal("TrackersCount");
 
                 while (await reader.ReadAsync())
                 {
@@ -142,7 +144,8 @@ namespace WebApplication1.Repository
                         VACBanned = reader.GetBoolean(vacBannedOrd),
                         NumberOfVACBans = reader.GetInt32(numVacOrd),
                         NumberOfGameBans = reader.GetInt32(numGameOrd),
-                        CommunityBanned = reader.GetBoolean(communityOrd)
+                        CommunityBanned = reader.GetBoolean(communityOrd),
+                        TrackersCount = reader.GetInt32(trackersCountOrd)
                     });
                 }
 
@@ -163,7 +166,7 @@ namespace WebApplication1.Repository
             try
             {
                 using var cmd = new SqlCommand(@"
-                    SELECT SteamId64, VACBanned, NumberOfVACBans, NumberOfGameBans, CommunityBanned
+                    SELECT SteamId64, VACBanned, NumberOfVACBans, NumberOfGameBans, CommunityBanned, 0 AS TrackersCount
                     FROM SteamAccounts
                     ORDER BY LastScannedAt ASC
                     OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;", conn);
@@ -179,6 +182,7 @@ namespace WebApplication1.Repository
                 var numVacOrd = reader.GetOrdinal("NumberOfVACBans");
                 var numGameOrd = reader.GetOrdinal("NumberOfGameBans");
                 var communityOrd = reader.GetOrdinal("CommunityBanned");
+                var trackersCountOrd = reader.GetOrdinal("TrackersCount");
 
                 while (await reader.ReadAsync())
                 {
@@ -188,7 +192,8 @@ namespace WebApplication1.Repository
                         VACBanned = reader.GetBoolean(vacBannedOrd),
                         NumberOfVACBans = reader.GetInt32(numVacOrd),
                         NumberOfGameBans = reader.GetInt32(numGameOrd),
-                        CommunityBanned = reader.GetBoolean(communityOrd)
+                        CommunityBanned = reader.GetBoolean(communityOrd),
+                        TrackersCount = reader.GetInt32(trackersCountOrd)
                     });
                 }
 

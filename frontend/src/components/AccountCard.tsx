@@ -6,6 +6,7 @@ export interface TrackedAccountDto {
   numberOfVACBans: number;
   numberOfGameBans: number;
   communityBanned: boolean;
+  trackersCount: number;
 }
 
 interface AccountCardProps {
@@ -26,14 +27,19 @@ export function AccountCard({ account, onUntrack }: AccountCardProps) {
           <h3 className="text-lg font-semibold text-gray-100 truncate" title={account.steamId64}>
             {account.steamId64}
           </h3>
-          <a 
-            href={`https://steamcommunity.com/profiles/${account.steamId64}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-blue-400 hover:text-blue-300 hover:underline"
-          >
-            View Profile ↗
-          </a>
+          <div className="flex flex-col gap-1 mt-1">
+            <a 
+              href={`https://steamcommunity.com/profiles/${account.steamId64}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-400 hover:text-blue-300 hover:underline"
+            >
+              View Profile ↗
+            </a>
+            <span className="text-xs text-gray-500">
+              {account.trackersCount} {account.trackersCount === 1 ? 'user tracking' : 'users tracking'}
+            </span>
+          </div>
         </div>
         
         {isClean ? (

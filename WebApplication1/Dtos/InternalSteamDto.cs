@@ -9,6 +9,7 @@ namespace WebApplication1.Dtos
         public int NumberOfVACBans { get; set; }
         public int NumberOfGameBans { get; set; }
         public bool CommunityBanned { get; set; }
+        public int TrackersCount { get; set; }
     }
 
     // --- Internal API: POST /api/internal/steam/ban-updates ---
