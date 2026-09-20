@@ -47,7 +47,17 @@ export function Navbar() {
                 >
                   Track Account
                 </NavLink>
-                <span className="text-gray-400 text-sm hidden sm:inline-block">
+                <NavLink 
+                  to="/settings" 
+                  className={({ isActive }) => 
+                    `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isActive ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    }`
+                  }
+                >
+                  Settings
+                </NavLink>
+                <span className="text-gray-400 text-sm hidden sm:inline-block border-l border-gray-700 pl-4 ml-2">
                   Hello, {user.username}
                 </span>
                 <button

@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Landing } from './pages/Landing';
 import { Dashboard } from './pages/Dashboard';
 import { TrackAccount } from './pages/TrackAccount';
+import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { NotFound } from './pages/NotFound';
@@ -38,6 +39,7 @@ export default function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/track" element={<TrackAccount />} />
+                <Route path="/settings" element={<Settings />} />
               </Route>
 
               {/* 404 */}
