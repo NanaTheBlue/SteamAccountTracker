@@ -185,8 +185,10 @@ export default withSentry(
 
       console.log(`[scheduled] Detected ${allUpdates.length} ban changes.`);
 
-      // 3. Report changes to API
+      // 3. Report changes to API and mark ALL accounts as scanned
       let notifications: NotificationEntry[] = [];
+      
+      // Update ban status for changed accounts
       if (allUpdates.length > 0) {
         if (shouldStop(requestCount, startTime, MAX_REQUESTS)) {
           console.warn(`[scheduled] Safety limit reached before reporting updates. Will retry next run.`);
@@ -203,6 +205,30 @@ export default withSentry(
         );
         requestCount++;
         notifications = updateRes.notifications;
+      }
+
+      // Mark all processed accounts as scanned so they move to the back of the queue
+      if (allAccounts.length > 0) {
+        if (shouldStop(requestCount, startTime, MAX_REQUESTS)) {
+          console.warn(`[scheduled] Safety limit reached before marking accounts as scanned.`);
+          return;
+        }
+        
+        // We chunk the mark-scanned to avoid huge payloads, though 1000 IDs is only ~20KB
+        const idsToMark = allAccounts.map(a => a.steamId64);
+        const markBatches = chunk(idsToMark, 1000);
+        
+        for (const batch of markBatches) {
+          await apiRequest(
+            `${env.API_BASE_URL}/api/internal/steam/mark-scanned`,
+            env,
+            {
+              method: 'POST',
+              body: JSON.stringify(batch),
+            }
+          );
+          requestCount++;
+        }
       }
 
       console.log(`[scheduled] Sending ${notifications.length} email notifications.`);

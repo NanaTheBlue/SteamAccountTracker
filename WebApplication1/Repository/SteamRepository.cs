@@ -291,5 +291,22 @@ namespace WebApplication1.Repository
 
             return notifications;
         }
+
+        public async Task UpdateLastScannedAt(List<string> steamId64s)
+        {
+            if (steamId64s == null || steamId64s.Count == 0) return;
+
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            using var cmd = new SqlCommand(@"
+                UPDATE SteamAccounts
+                SET LastScannedAt = GETUTCDATE()
+                WHERE SteamId64 IN (SELECT value FROM STRING_SPLIT(@ids, ','));", conn);
+
+            cmd.Parameters.Add("@ids", SqlDbType.NVarChar, -1).Value = string.Join(",", steamId64s);
+
+            await cmd.ExecuteNonQueryAsync();
+        }
     }
 }

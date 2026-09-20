@@ -9,5 +9,6 @@ namespace WebApplication1.Repository
         Task<List<TrackedAccountDto>> GetTrackedAccountsByUser(string userId);
         Task<List<TrackedAccountDto>> GetAllTrackedAccounts(int offset, int limit);
         Task<List<NotificationEntry>> UpdateBanStatusAndGetNotifications(List<BanUpdateEntry> updates);
+        Task UpdateLastScannedAt(List<string> steamId64s);
     }
 }

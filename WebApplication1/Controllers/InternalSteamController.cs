@@ -91,5 +91,29 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, "An error occurred while processing ban updates.");
             }
         }
+
+        /// <summary>
+        /// Updates the LastScannedAt timestamp for accounts that were successfully checked,
+        /// ensuring they cycle to the back of the scanning queue.
+        /// </summary>
+        [HttpPost("mark-scanned")]
+        public async Task<IActionResult> MarkScanned([FromBody] List<string> steamId64s)
+        {
+            if (steamId64s == null || steamId64s.Count == 0)
+            {
+                return BadRequest("No Steam IDs provided.");
+            }
+
+            try
+            {
+                await _steamRepository.UpdateLastScannedAt(steamId64s);
+                return Ok(new { message = $"Updated LastScannedAt for {steamId64s.Count} accounts." });
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Failed to mark accounts as scanned");
+                return StatusCode(500, "An error occurred while updating scanned timestamps.");
+            }
+        }
     }
 }
