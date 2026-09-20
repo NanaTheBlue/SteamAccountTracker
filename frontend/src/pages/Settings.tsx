@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { apiPost } from '../api/client'; // Will need apiPut later
+//import { apiPost } from '../api/client'; // Will need apiPut later
 
 export function Settings() {
   const { user } = useAuth();

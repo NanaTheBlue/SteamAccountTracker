@@ -187,7 +187,7 @@ namespace WebApplication1.Tests.Services
             _userRepository.CreateSessionHandler = (id, duration) =>
             {
                 Assert.Equal(userId, id);
-                Assert.Equal(TimeSpan.FromHours(24), duration);
+                Assert.Equal(TimeSpan.FromDays(30), duration);
                 return Task.FromResult(expectedSessionId);
             };
 
