@@ -4,8 +4,13 @@ import { useAuth } from '../context/AuthContext';
 export function Landing() {
   const { user, loading } = useAuth();
 
+  // If auth state is still initializing, don't flash the landing page UI
+  if (loading) {
+    return null;
+  }
+
   // If already logged in, skip the landing page and go straight to the dashboard
-  if (!loading && user) {
+  if (user) {
     return <Navigate to="/dashboard" replace />;
   }
 
