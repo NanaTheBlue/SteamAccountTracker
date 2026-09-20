@@ -35,6 +35,26 @@ namespace WebApplication1.Controllers
                 {
                     return Conflict("An account with this email already exists.");
                 }
+
+                // Automatically log the user in right after registering
+                var loginResult = await _userService.LoginUser(new LoginRequest 
+                { 
+                    Email = registerRequest.Email, 
+                    Password = registerRequest.Password 
+                });
+
+                if (loginResult.Success && loginResult.SessionId.HasValue)
+                {
+                    Response.Cookies.Append("sessionId", loginResult.SessionId.Value.ToString(), new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.Strict,
+                        MaxAge = TimeSpan.FromHours(24),
+                        Path = "/"
+                    });
+                }
+
                 return Ok(new { message = "User registered successfully.", user });
             }
             catch (ArgumentException e)
