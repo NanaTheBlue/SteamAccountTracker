@@ -7,9 +7,10 @@ compatibility_flags = ["nodejs_compat"]
 crons = ["*/15 * * * *"]
 
 [vars]
-FROM_EMAIL = "alerts@strykz.net"
+FROM_EMAIL = "noreply@alerts.cheaterwatch.com"
+API_BASE_URL = "https://api.cheaterwatch.com"
+
 # Use `wrangler secret put` for the following sensitive variables:
-# API_BASE_URL  (your production API URL)
 # WORKER_KEY
 # STEAM_API_KEY
 # RESEND_API_KEY
