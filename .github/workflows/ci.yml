@@ -165,6 +165,7 @@ jobs:
           script: |
             set -e
             cd /opt/cheaterwatch
+            curl -s -o docker-compose.prod.yml https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/docker-compose.prod.yml
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
             docker system prune -f --volumes=false
