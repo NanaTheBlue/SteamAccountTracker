@@ -173,5 +173,149 @@ namespace WebApplication1.Repository
                 throw;
             }
         }
+
+        public async Task<UserDto?> GetUserById(Guid id)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            try
+            {
+                using var cmd = new SqlCommand("SELECT Id, Username, Email, EmailNotificationsEnabled, DiscordNotificationsEnabled FROM Users WHERE Id = @Id;", conn);
+                cmd.Parameters.Add("@Id", SqlDbType.UniqueIdentifier).Value = id;
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new UserDto
+                    {
+                        ID = reader.GetGuid("Id"),
+                        Username = reader.GetString("Username"),
+                        Email = reader.GetString("Email"),
+                        EmailNotificationsEnabled = reader.GetBoolean("EmailNotificationsEnabled"),
+                        DiscordNotificationsEnabled = reader.GetBoolean("DiscordNotificationsEnabled")
+                    };
+                }
+                return null;
+            }
+            catch (SqlException e)
+            {
+                _logger.LogError(e, "Failed to get user by id");
+                throw;
+            }
+        }
+
+        public async Task<bool> UpdateNotificationSettings(Guid userId, bool emailEnabled, bool discordEnabled)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            try
+            {
+                using var cmd = new SqlCommand(@"
+                    UPDATE Users 
+                    SET EmailNotificationsEnabled = @Email, 
+                        DiscordNotificationsEnabled = @Discord 
+                    WHERE Id = @Id;", conn);
+                
+                cmd.Parameters.Add("@Email", SqlDbType.Bit).Value = emailEnabled;
+                cmd.Parameters.Add("@Discord", SqlDbType.Bit).Value = discordEnabled;
+                cmd.Parameters.Add("@Id", SqlDbType.UniqueIdentifier).Value = userId;
+                
+                return await cmd.ExecuteNonQueryAsync() > 0;
+            }
+            catch (SqlException e)
+            {
+                _logger.LogError(e, "Failed to update notification settings");
+                throw;
+            }
+        }
+
+        public async Task<List<WebhookDto>> GetWebhooks(Guid userId)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            try
+            {
+                var webhooks = new List<WebhookDto>();
+                using var cmd = new SqlCommand("SELECT Id, Name, WebhookUrl, CreatedAt FROM UserWebhooks WHERE UserId = @UserId ORDER BY CreatedAt DESC;", conn);
+                cmd.Parameters.Add("@UserId", SqlDbType.UniqueIdentifier).Value = userId;
+                
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    webhooks.Add(new WebhookDto
+                    {
+                        Id = reader.GetGuid("Id"),
+                        Name = reader.GetString("Name"),
+                        WebhookUrl = reader.GetString("WebhookUrl"),
+                        CreatedAt = reader.GetDateTime("CreatedAt")
+                    });
+                }
+                return webhooks;
+            }
+            catch (SqlException e)
+            {
+                _logger.LogError(e, "Failed to get webhooks");
+                throw;
+            }
+        }
+
+        public async Task<WebhookDto> AddWebhook(Guid userId, string name, string url)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            try
+            {
+                using var cmd = new SqlCommand(@"
+                    INSERT INTO UserWebhooks (UserId, Name, WebhookUrl) 
+                    OUTPUT inserted.Id, inserted.CreatedAt 
+                    VALUES (@UserId, @Name, @Url);", conn);
+                
+                cmd.Parameters.Add("@UserId", SqlDbType.UniqueIdentifier).Value = userId;
+                cmd.Parameters.Add("@Name", SqlDbType.NVarChar, 100).Value = name;
+                cmd.Parameters.Add("@Url", SqlDbType.NVarChar, 1000).Value = url;
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    return new WebhookDto
+                    {
+                        Id = reader.GetGuid("Id"),
+                        Name = name,
+                        WebhookUrl = url,
+                        CreatedAt = reader.GetDateTime("CreatedAt")
+                    };
+                }
+                throw new Exception("Failed to insert webhook");
+            }
+            catch (SqlException e)
+            {
+                _logger.LogError(e, "Failed to add webhook");
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteWebhook(Guid userId, Guid webhookId)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            try
+            {
+                using var cmd = new SqlCommand("DELETE FROM UserWebhooks WHERE Id = @Id AND UserId = @UserId;", conn);
+                cmd.Parameters.Add("@Id", SqlDbType.UniqueIdentifier).Value = webhookId;
+                cmd.Parameters.Add("@UserId", SqlDbType.UniqueIdentifier).Value = userId;
+                
+                return await cmd.ExecuteNonQueryAsync() > 0;
+            }
+            catch (SqlException e)
+            {
+                _logger.LogError(e, "Failed to delete webhook");
+                throw;
+            }
+        }
     }
 }

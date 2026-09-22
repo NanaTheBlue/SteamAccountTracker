@@ -117,5 +117,68 @@ namespace WebApplication1.Controllers
 
             return Ok(new { message = "Logged out successfully." });
         }
+
+        [HttpGet("settings")]
+        public async Task<IActionResult> GetSettings([FromServices] WebApplication1.Repository.IUserRepository userRepository)
+        {
+            var user = (AuthenticatedUser?)HttpContext.Items["User"];
+            if (user == null) return Unauthorized();
+
+            var userDetails = await userRepository.GetUserById(user.Id);
+            if (userDetails == null) return NotFound();
+
+            return Ok(userDetails);
+        }
+
+        [HttpPut("settings")]
+        public async Task<IActionResult> UpdateSettings([FromBody] UpdateSettingsRequest request, [FromServices] WebApplication1.Repository.IUserRepository userRepository)
+        {
+            var user = (AuthenticatedUser?)HttpContext.Items["User"];
+            if (user == null) return Unauthorized();
+
+            var success = await userRepository.UpdateNotificationSettings(user.Id, request.EmailNotificationsEnabled, request.DiscordNotificationsEnabled);
+            if (!success) return StatusCode(500, "Failed to update settings.");
+
+            return Ok(new { message = "Settings updated successfully." });
+        }
+
+        [HttpGet("webhooks")]
+        public async Task<IActionResult> GetWebhooks([FromServices] WebApplication1.Repository.IUserRepository userRepository)
+        {
+            var user = (AuthenticatedUser?)HttpContext.Items["User"];
+            if (user == null) return Unauthorized();
+
+            var webhooks = await userRepository.GetWebhooks(user.Id);
+            return Ok(webhooks);
+        }
+
+        [HttpPost("webhooks")]
+        public async Task<IActionResult> AddWebhook([FromBody] AddWebhookRequest request, [FromServices] WebApplication1.Repository.IUserRepository userRepository)
+        {
+            var user = (AuthenticatedUser?)HttpContext.Items["User"];
+            if (user == null) return Unauthorized();
+
+            try
+            {
+                var webhook = await userRepository.AddWebhook(user.Id, request.Name, request.WebhookUrl);
+                return Ok(webhook);
+            }
+            catch
+            {
+                return StatusCode(500, "Failed to add webhook.");
+            }
+        }
+
+        [HttpDelete("webhooks/{id}")]
+        public async Task<IActionResult> DeleteWebhook(Guid id, [FromServices] WebApplication1.Repository.IUserRepository userRepository)
+        {
+            var user = (AuthenticatedUser?)HttpContext.Items["User"];
+            if (user == null) return Unauthorized();
+
+            var success = await userRepository.DeleteWebhook(user.Id, id);
+            if (!success) return NotFound("Webhook not found.");
+
+            return Ok(new { message = "Webhook deleted successfully." });
+        }
     }
 }

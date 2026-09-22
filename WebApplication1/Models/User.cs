@@ -8,6 +8,8 @@ namespace WebApplication1.Models
         public required string PasswordHash { get; set; }
         public string? SessionId { get; set; }
         public DateTime? SessionExp { get; set; }
+        public bool EmailNotificationsEnabled { get; set; } = true;
+        public bool DiscordNotificationsEnabled { get; set; } = true;
     }
 
     public class AuthenticatedUser

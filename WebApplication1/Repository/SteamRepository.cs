@@ -262,8 +262,28 @@ namespace WebApplication1.Repository
                     }
 
                     // Get all users tracking this account
+                    var userWebhooks = new Dictionary<Guid, List<string>>();
+                    
+                    using (var webhooksCmd = new SqlCommand(@"
+                        SELECT uw.UserId, uw.WebhookUrl
+                        FROM UserWebhooks uw
+                        INNER JOIN UserSteamAccounts usa ON uw.UserId = usa.UserId
+                        INNER JOIN SteamAccounts sa ON usa.SteamAccountId = sa.Id
+                        WHERE sa.SteamId64 = @steamId64;", conn, transaction))
+                    {
+                        webhooksCmd.Parameters.Add("@steamId64", SqlDbType.NVarChar, 17).Value = update.SteamId64;
+                        using var webhookReader = await webhooksCmd.ExecuteReaderAsync();
+                        while (await webhookReader.ReadAsync())
+                        {
+                            var uId = webhookReader.GetGuid(0);
+                            var url = webhookReader.GetString(1);
+                            if (!userWebhooks.ContainsKey(uId)) userWebhooks[uId] = new List<string>();
+                            userWebhooks[uId].Add(url);
+                        }
+                    }
+
                     using (var usersCmd = new SqlCommand(@"
-                        SELECT u.Email, u.Username
+                        SELECT u.Id, u.Email, u.Username, u.EmailNotificationsEnabled, u.DiscordNotificationsEnabled
                         FROM Users u
                         INNER JOIN UserSteamAccounts usa ON u.Id = usa.UserId
                         INNER JOIN SteamAccounts sa ON usa.SteamAccountId = sa.Id
@@ -274,12 +294,20 @@ namespace WebApplication1.Repository
 
                         while (await userReader.ReadAsync())
                         {
+                            var userId = userReader.GetGuid(0);
+                            var discordEnabled = userReader.GetBoolean(4);
+                            
                             notifications.Add(new NotificationEntry
                             {
-                                Email = userReader.GetString(0),
-                                Username = userReader.GetString(1),
+                                Email = userReader.GetString(1),
+                                Username = userReader.GetString(2),
                                 SteamId64 = update.SteamId64,
-                                BanType = banType
+                                BanType = banType,
+                                SendEmail = userReader.GetBoolean(3),
+                                SendDiscord = discordEnabled,
+                                DiscordWebhooks = discordEnabled && userWebhooks.ContainsKey(userId) 
+                                    ? userWebhooks[userId] 
+                                    : new List<string>()
                             });
                         }
                     }

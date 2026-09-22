@@ -29,6 +29,12 @@ namespace WebApplication1.Tests.Services
 
         public Task InvalidateSession(Guid sessionId) =>
             InvalidateSessionHandler != null ? InvalidateSessionHandler(sessionId) : Task.CompletedTask;
+
+        public Task<UserDto?> GetUserById(Guid id) => Task.FromResult<UserDto?>(null);
+        public Task<bool> UpdateNotificationSettings(Guid userId, bool emailEnabled, bool discordEnabled) => Task.FromResult(true);
+        public Task<List<WebhookDto>> GetWebhooks(Guid userId) => Task.FromResult(new List<WebhookDto>());
+        public Task<WebhookDto> AddWebhook(Guid userId, string name, string url) => Task.FromResult(new WebhookDto { Id = Guid.NewGuid(), Name = name, WebhookUrl = url });
+        public Task<bool> DeleteWebhook(Guid userId, Guid webhookId) => Task.FromResult(true);
     }
 
     public class UserServiceTests

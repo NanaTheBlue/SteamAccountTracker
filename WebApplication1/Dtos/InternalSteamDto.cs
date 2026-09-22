@@ -39,6 +39,9 @@ namespace WebApplication1.Dtos
         public required string Username { get; set; }
         public required string SteamId64 { get; set; }
         public required string BanType { get; set; }
+        public bool SendEmail { get; set; }
+        public bool SendDiscord { get; set; }
+        public List<string> DiscordWebhooks { get; set; } = new();
     }
 }
 

@@ -43,6 +43,37 @@ namespace WebApplication1.Dtos
         public Guid ID { get; set; }
         public required string Username { get; set; }
         public required string Email { get; set; }
+        public bool EmailNotificationsEnabled { get; set; }
+        public bool DiscordNotificationsEnabled { get; set; }
+    }
+
+    public class UpdateSettingsRequest
+    {
+        [Required]
+        public bool EmailNotificationsEnabled { get; set; }
+        
+        [Required]
+        public bool DiscordNotificationsEnabled { get; set; }
+    }
+
+    public class WebhookDto
+    {
+        public Guid Id { get; set; }
+        public required string Name { get; set; }
+        public required string WebhookUrl { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class AddWebhookRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public required string Name { get; set; }
+
+        [Required]
+        [MaxLength(1000)]
+        [Url]
+        public required string WebhookUrl { get; set; }
     }
 }
 

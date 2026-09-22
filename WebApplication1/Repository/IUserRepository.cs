@@ -10,5 +10,12 @@ namespace WebApplication1.Repository
         Task<User?> GetUserFromEmail(string email);
         Task<Guid> CreateSession(Guid userId, TimeSpan duration);
         Task InvalidateSession(Guid sessionId);
+        
+        Task<UserDto?> GetUserById(Guid id);
+        Task<bool> UpdateNotificationSettings(Guid userId, bool emailEnabled, bool discordEnabled);
+        
+        Task<List<WebhookDto>> GetWebhooks(Guid userId);
+        Task<WebhookDto> AddWebhook(Guid userId, string name, string url);
+        Task<bool> DeleteWebhook(Guid userId, Guid webhookId);
     }
 }

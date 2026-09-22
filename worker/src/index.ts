@@ -52,6 +52,9 @@ interface NotificationEntry {
   username: string;
   steamId64: string;
   banType: string;
+  sendEmail: boolean;
+  sendDiscord: boolean;
+  discordWebhooks: string[];
 }
 
 export function escapeHtml(unsafe: string): string {
@@ -219,40 +222,82 @@ export default withSentry(
           }
         );
 
-        // 5. Send emails
+        // 5. Send Notifications
         if (notifications.length > 0) {
-          console.log(`[queue] Sending ${notifications.length} email notifications...`);
+          console.log(`[queue] Processing ${notifications.length} notifications...`);
           
-          const results = await Promise.allSettled(
-            notifications.map(notification =>
-              fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${env.RESEND_API_KEY}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  from: `CheaterWatch <${env.FROM_EMAIL || 'alerts@cheaterwatch.com'}>`,
-                  to: [notification.email],
-                  subject: `🚨 Ban Detected — Tracked Account ${notification.steamId64}`,
-                  html: `
-                    <p>Hi ${escapeHtml(notification.username)},</p>
-                    <p>A Steam account you're tracking has received a new ban.</p>
-                    <p><strong>Steam ID:</strong> ${escapeHtml(notification.steamId64)}</p>
-                    <p><strong>Ban type:</strong> ${escapeHtml(notification.banType)}</p>
-                    <p><a href="https://steamcommunity.com/profiles/${escapeHtml(notification.steamId64)}">View on Steam</a></p>
-                    <p>— CheaterWatch</p>
-                  `,
-                }),
-              })
-            )
-          );
+          const emailPromises: Promise<any>[] = [];
+          const discordPromises: Promise<any>[] = [];
 
-          results.forEach((res, i) => {
-            if (res.status === 'rejected' || !res.value.ok) {
-              console.error(`[queue] Failed to email ${notifications[i].email}`);
+          notifications.forEach((notification, i) => {
+            // Queue emails
+            if (notification.sendEmail) {
+              emailPromises.push(
+                fetch('https://api.resend.com/emails', {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${env.RESEND_API_KEY}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    from: `CheaterWatch <${env.FROM_EMAIL || 'alerts@cheaterwatch.com'}>`,
+                    to: [notification.email],
+                    subject: `🚨 Ban Detected — Tracked Account ${notification.steamId64}`,
+                    html: `
+                      <p>Hi ${escapeHtml(notification.username)},</p>
+                      <p>A Steam account you're tracking has received a new ban.</p>
+                      <p><strong>Steam ID:</strong> ${escapeHtml(notification.steamId64)}</p>
+                      <p><strong>Ban type:</strong> ${escapeHtml(notification.banType)}</p>
+                      <p><a href="https://steamcommunity.com/profiles/${escapeHtml(notification.steamId64)}">View on Steam</a></p>
+                      <p>— CheaterWatch</p>
+                    `,
+                  }),
+                }).then(res => {
+                  if (!res.ok) console.error(`[queue] Failed to email ${notification.email}: ${res.status}`);
+                  return res;
+                })
+              );
+            }
+
+            // Queue Discord Webhooks
+            if (notification.sendDiscord && notification.discordWebhooks && notification.discordWebhooks.length > 0) {
+              const discordPayload = {
+                content: `🚨 **Ban Detected!** A Steam account you're tracking has received a new ban.`,
+                embeds: [{
+                  title: `Account: ${notification.steamId64}`,
+                  url: `https://steamcommunity.com/profiles/${notification.steamId64}`,
+                  color: 16711680, // Red
+                  fields: [
+                    {
+                      name: "Ban Type",
+                      value: notification.banType,
+                      inline: true
+                    }
+                  ],
+                  footer: {
+                    text: "CheaterWatch Alerts"
+                  },
+                  timestamp: new Date().toISOString()
+                }]
+              };
+
+              notification.discordWebhooks.forEach(webhookUrl => {
+                discordPromises.push(
+                  fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(discordPayload)
+                  }).then(res => {
+                    if (!res.ok) console.error(`[queue] Failed to send discord webhook to ${webhookUrl}: ${res.status}`);
+                    return res;
+                  })
+                );
+              });
             }
           });
+
+          // Wait for all notifications to send
+          await Promise.allSettled([...emailPromises, ...discordPromises]);
         }
 
         // Tell the queue this message was successfully processed
