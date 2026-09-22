@@ -18,6 +18,6 @@ test('can navigate to login page', async ({ page }) => {
   await expect(page).toHaveURL(/.*login/);
   
   // Expect a login form header
-  await expect(page.locator('h1')).toContainText('Login');
+  await expect(page.locator('h2')).toContainText('Sign in');
 });
 
