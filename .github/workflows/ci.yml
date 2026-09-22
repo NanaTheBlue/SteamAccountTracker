@@ -202,7 +202,7 @@ jobs:
       - name: Run Playwright tests
         working-directory: e2e
         env:
-          E2E_BASE_URL: http://${{ secrets.SERVER_HOST }}
+          E2E_BASE_URL: https://cheaterwatch.com
         run: npx playwright test
 
       - name: Upload Playwright report
