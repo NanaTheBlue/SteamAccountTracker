@@ -7,6 +7,7 @@ interface Env {
   RESEND_API_KEY: string;
   FROM_EMAIL: string;
   SENTRY_DSN?: string;
+  SCAN_QUEUE: Queue<TrackedAccount[]>;
 }
 
 interface TrackedAccount {
@@ -87,10 +88,6 @@ async function apiRequest<T>(url: string, env: Env, options?: RequestInit): Prom
   return response.json() as Promise<T>;
 }
 
-export function shouldStop(requestCount: number, startTime: number, maxRequests: number): boolean {
-  return requestCount >= maxRequests || Date.now() - startTime > 13 * 60 * 1000;
-}
-
 export default withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
@@ -102,25 +99,21 @@ export default withSentry(
     });
   },
 
+  // PRODUCER: Runs on a cron schedule, grabs accounts, and puts them in the queue
   async scheduled(controller, env, ctx) {
-    const MAX_REQUESTS = 40;
-    let requestCount = 0;
-    const startTime = Date.now();
-
     console.log(`[scheduled] Starting ban scan at ${new Date(controller.scheduledTime).toISOString()}`);
 
     try {
-      // 1. Fetch accounts with pagination
       const allAccounts: TrackedAccount[] = [];
       let offset = 0;
       const pageSize = 1000;
 
-      while (!shouldStop(requestCount, startTime, MAX_REQUESTS)) {
+      // 1. Fetch all accounts from your API
+      while (true) {
         const page = await apiRequest<AccountsPage>(
           `${env.API_BASE_URL}/api/internal/steam/accounts-to-scan?offset=${offset}&limit=${pageSize}`,
           env
         );
-        requestCount++;
         allAccounts.push(...page.accounts);
 
         if (page.count < pageSize) break; // last page
@@ -130,38 +123,57 @@ export default withSentry(
       console.log(`[scheduled] Fetched ${allAccounts.length} accounts to scan.`);
       if (allAccounts.length === 0) return;
 
-      const accountMap = new Map<string, TrackedAccount>();
-      allAccounts.forEach(a => accountMap.set(a.steamId64, a));
-
-      // 2. Batch and scan against Steam API
+      // 2. Chunk into batches of 100 (Steam API limit)
       const batches = chunk(allAccounts, 100);
-      console.log(`[scheduled] Divided into ${batches.length} batches.`);
-      const allUpdates: BanUpdate[] = [];
+      console.log(`[scheduled] Divided into ${batches.length} batches of up to 100. Pushing to queue...`);
 
-      for (let i = 0; i < batches.length; i++) {
-        if (shouldStop(requestCount, startTime, MAX_REQUESTS)) {
-          console.warn(`[scheduled] Safety limit reached at batch ${i}/${batches.length}. Stopping early.`);
-          break;
-        }
+      // 3. Send batches to the Queue (max 100 messages per sendBatch)
+      const messageBatches = chunk(batches, 100);
+      
+      for (const batchOfMessages of messageBatches) {
+         await env.SCAN_QUEUE.sendBatch(
+           batchOfMessages.map(b => ({ body: b }))
+         );
+      }
 
-        const batch = batches[i];
-        const steamIds = batch.map(a => a.steamId64).join(',');
+      console.log(`[scheduled] Successfully queued ${batches.length} batches for processing.`);
+    } catch (error) {
+      console.error(`[scheduled] Producer failed: ${error}`);
+      throw error;
+    }
+  },
+
+  // CONSUMER: Automatically triggered by Cloudflare when messages arrive in the queue
+  async queue(batch, env, ctx) {
+    console.log(`[queue] Processing batch of ${batch.messages.length} messages.`);
+
+    for (const message of batch.messages) {
+      const accounts = message.body; // Array of up to 100 TrackedAccounts
+      
+      try {
+        const accountMap = new Map<string, TrackedAccount>();
+        accounts.forEach(a => accountMap.set(a.steamId64, a));
+
+        const steamIds = accounts.map(a => a.steamId64).join(',');
         const steamApiUrl = `https://api.steampowered.com/ISteamUser/GetPlayerBans/v1/?key=${env.STEAM_API_KEY}&steamids=${steamIds}`;
 
+        // 1. Check Steam API
         const response = await fetch(steamApiUrl);
-        requestCount++;
-
+        
         if (response.status === 429) {
-          console.warn(`[scheduled] Steam API rate limited (429). Stopping early.`);
-          break;
-        }
-        if (!response.ok) {
-          console.error(`[scheduled] Steam API error: ${response.status}`);
+          console.warn(`[queue] Steam API rate limited. Retrying message later.`);
+          message.retry(); // Automatically puts this chunk back in the queue
           continue;
+        }
+        
+        if (!response.ok) {
+          throw new Error(`Steam API error: ${response.status}`);
         }
 
         const data = await response.json() as SteamBanResponse;
+        const updates: BanUpdate[] = [];
 
+        // 2. Compare for bans
         for (const player of data.players) {
           const tracked = accountMap.get(player.SteamId);
           if (!tracked) continue;
@@ -172,7 +184,7 @@ export default withSentry(
             tracked.numberOfGameBans !== player.NumberOfGameBans ||
             tracked.communityBanned !== player.CommunityBanned
           ) {
-            allUpdates.push({
+            updates.push({
               steamId64: player.SteamId,
               vacBanned: player.VACBanned,
               numberOfVACBans: player.NumberOfVACBans,
@@ -181,110 +193,75 @@ export default withSentry(
             });
           }
         }
-      }
 
-      console.log(`[scheduled] Detected ${allUpdates.length} ban changes.`);
-
-      // 3. Report changes to API and mark ALL accounts as scanned
-      let notifications: NotificationEntry[] = [];
-      
-      // Update ban status for changed accounts
-      if (allUpdates.length > 0) {
-        if (shouldStop(requestCount, startTime, MAX_REQUESTS)) {
-          console.warn(`[scheduled] Safety limit reached before reporting updates. Will retry next run.`);
-          return;
-        }
-
-        const updateRes = await apiRequest<{ notifications: NotificationEntry[] }>(
-          `${env.API_BASE_URL}/api/internal/steam/ban-updates`,
-          env,
-          {
-            method: 'POST',
-            body: JSON.stringify({ updates: allUpdates }),
-          }
-        );
-        requestCount++;
-        notifications = updateRes.notifications;
-      }
-
-      // Mark all processed accounts as scanned so they move to the back of the queue
-      if (allAccounts.length > 0) {
-        if (shouldStop(requestCount, startTime, MAX_REQUESTS)) {
-          console.warn(`[scheduled] Safety limit reached before marking accounts as scanned.`);
-          return;
-        }
-        
-        // We chunk the mark-scanned to avoid huge payloads, though 1000 IDs is only ~20KB
-        const idsToMark = allAccounts.map(a => a.steamId64);
-        const markBatches = chunk(idsToMark, 1000);
-        
-        for (const batch of markBatches) {
-          await apiRequest(
-            `${env.API_BASE_URL}/api/internal/steam/mark-scanned`,
+        // 3. Report changes to API and get emails
+        let notifications: NotificationEntry[] = [];
+        if (updates.length > 0) {
+          console.log(`[queue] Found ${updates.length} ban changes. Updating database...`);
+          const updateRes = await apiRequest<{ notifications: NotificationEntry[] }>(
+            `${env.API_BASE_URL}/api/internal/steam/ban-updates`,
             env,
             {
               method: 'POST',
-              body: JSON.stringify(batch),
+              body: JSON.stringify({ updates: updates }),
             }
           );
-          requestCount++;
-        }
-      }
-
-      console.log(`[scheduled] Sending ${notifications.length} email notifications.`);
-
-      // 4. Send emails in parallel batches of 10
-      let emailsSent = 0;
-      const emailBatches = chunk(notifications, 10);
-
-      for (const emailBatch of emailBatches) {
-        if (shouldStop(requestCount, startTime, MAX_REQUESTS)) {
-          console.warn(`[scheduled] Safety limit reached during email sending. ${emailsSent} sent so far.`);
-          break;
+          notifications = updateRes.notifications;
         }
 
-        const results = await Promise.allSettled(
-          emailBatch.map(notification =>
-            fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${env.RESEND_API_KEY}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                from: `CheaterWatch <${env.FROM_EMAIL || 'alerts@cheaterwatch.com'}>`,
-                to: [notification.email],
-                subject: `🚨 Ban Detected — Tracked Account ${notification.steamId64}`,
-                html: `
-                  <p>Hi ${escapeHtml(notification.username)},</p>
-                  <p>A Steam account you're tracking has received a new ban.</p>
-                  <p><strong>Steam ID:</strong> ${escapeHtml(notification.steamId64)}</p>
-                  <p><strong>Ban type:</strong> ${escapeHtml(notification.banType)}</p>
-                  <p><a href="https://steamcommunity.com/profiles/${escapeHtml(notification.steamId64)}">View on Steam</a></p>
-                  <p>— CheaterWatch</p>
-                `,
-              }),
-            })
-          )
+        // 4. Mark these specific accounts as scanned
+        await apiRequest(
+          `${env.API_BASE_URL}/api/internal/steam/mark-scanned`,
+          env,
+          {
+            method: 'POST',
+            body: JSON.stringify(accounts.map(a => a.steamId64)),
+          }
         );
 
-        requestCount += emailBatch.length;
+        // 5. Send emails
+        if (notifications.length > 0) {
+          console.log(`[queue] Sending ${notifications.length} email notifications...`);
+          
+          const results = await Promise.allSettled(
+            notifications.map(notification =>
+              fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${env.RESEND_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  from: `CheaterWatch <${env.FROM_EMAIL || 'alerts@cheaterwatch.com'}>`,
+                  to: [notification.email],
+                  subject: `🚨 Ban Detected — Tracked Account ${notification.steamId64}`,
+                  html: `
+                    <p>Hi ${escapeHtml(notification.username)},</p>
+                    <p>A Steam account you're tracking has received a new ban.</p>
+                    <p><strong>Steam ID:</strong> ${escapeHtml(notification.steamId64)}</p>
+                    <p><strong>Ban type:</strong> ${escapeHtml(notification.banType)}</p>
+                    <p><a href="https://steamcommunity.com/profiles/${escapeHtml(notification.steamId64)}">View on Steam</a></p>
+                    <p>— CheaterWatch</p>
+                  `,
+                }),
+              })
+            )
+          );
 
-        for (let i = 0; i < results.length; i++) {
-          const result = results[i];
-          if (result.status === 'fulfilled' && result.value.ok) {
-            emailsSent++;
-          } else {
-            const reason = result.status === 'rejected' ? result.reason : `HTTP ${(result.value as Response).status}`;
-            console.error(`[scheduled] Failed to email ${emailBatch[i].email}: ${reason}`);
-          }
+          results.forEach((res, i) => {
+            if (res.status === 'rejected' || !res.value.ok) {
+              console.error(`[queue] Failed to email ${notifications[i].email}`);
+            }
+          });
         }
-      }
 
-      console.log(`[scheduled] Done. ${emailsSent}/${notifications.length} emails sent. ${requestCount} total API requests.`);
-    } catch (error) {
-      console.error(`[scheduled] Worker failed: ${error}`);
-      throw error; // Let Sentry catch it
+        // Tell the queue this message was successfully processed
+        message.ack();
+        
+      } catch (error) {
+        console.error(`[queue] Failed to process message: ${error}`);
+        message.retry(); // Puts it back in the queue to try again
+      }
     }
   },
 });

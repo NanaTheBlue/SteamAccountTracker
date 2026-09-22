@@ -14,3 +14,12 @@ API_BASE_URL = "https://api.cheaterwatch.com"
 # WORKER_KEY
 # STEAM_API_KEY
 # RESEND_API_KEY
+
+[[queues.producers]]
+queue = "steam-scans-queue"
+binding = "SCAN_QUEUE"
+
+[[queues.consumers]]
+queue = "steam-scans-queue"
+max_batch_size = 10    # Up to 10 batches (1000 accounts) processed per worker instance
+max_batch_timeout = 5  # Or wait 5 seconds before processing
