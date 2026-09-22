@@ -145,10 +145,12 @@ export default withSentry(
 
   // CONSUMER: Automatically triggered by Cloudflare when messages arrive in the queue
   async queue(batch, env, ctx) {
+  async queue(batch: MessageBatch<TrackedAccount[]>, env: Env, ctx: ExecutionContext) {
     console.log(`[queue] Processing batch of ${batch.messages.length} messages.`);
 
     for (const message of batch.messages) {
       const accounts = message.body; // Array of up to 100 TrackedAccounts
+      const accounts: TrackedAccount[] = message.body; // Array of up to 100 TrackedAccounts
       
       try {
         const accountMap = new Map<string, TrackedAccount>();

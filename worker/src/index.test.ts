@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { escapeHtml, chunk, shouldStop } from './index';
+import { escapeHtml, chunk } from './index';
 
 describe('escapeHtml', () => {
   it('escapes HTML special characters correctly', () => {
