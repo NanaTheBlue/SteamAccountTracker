@@ -7,6 +7,8 @@ services:
       - MSSQL_SA_PASSWORD=${DB_PASSWORD}
     volumes:
       - sqlserver_data:/var/opt/mssql
+    ports:
+      - "127.0.0.1:1433:1433"
     networks:
       - internal
     healthcheck:
