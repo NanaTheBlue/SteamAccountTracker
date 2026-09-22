@@ -35,6 +35,7 @@ namespace WebApplication1.Tests.Services
         public Task<List<WebhookDto>> GetWebhooks(Guid userId) => Task.FromResult(new List<WebhookDto>());
         public Task<WebhookDto> AddWebhook(Guid userId, string name, string url) => Task.FromResult(new WebhookDto { Id = Guid.NewGuid(), Name = name, WebhookUrl = url });
         public Task<bool> DeleteWebhook(Guid userId, Guid webhookId) => Task.FromResult(true);
+        public Task<bool> DeleteUser(Guid id) => Task.FromResult(true);
     }
 
     public class UserServiceTests

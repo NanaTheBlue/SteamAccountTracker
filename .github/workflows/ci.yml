@@ -172,3 +172,43 @@ jobs:
             docker system prune -f --volumes=false
             echo "Deploy complete"
 
+  e2e-tests:
+    name: Run E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [deploy, deploy-worker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        working-directory: e2e
+        run: npm install
+
+      - name: Install Playwright browsers
+        working-directory: e2e
+        run: npx playwright install --with-deps
+
+      - name: Wait for server to be healthy
+        # Wait a few seconds for containers to fully start up and serve traffic
+        run: sleep 10
+
+      - name: Run Playwright tests
+        working-directory: e2e
+        env:
+          E2E_BASE_URL: http://${{ secrets.SERVER_HOST }}
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 14

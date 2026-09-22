@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiGet, apiPut, apiPost, apiDelete } from '../api/client';
 
 interface UserSettings {
   emailNotificationsEnabled: boolean;
@@ -33,15 +34,12 @@ export function Settings() {
     try {
       setLoading(true);
       const [settingsRes, webhooksRes] = await Promise.all([
-        fetch('/api/user/settings'),
-        fetch('/api/user/webhooks')
+        apiGet<UserSettings>('/api/user/settings'),
+        apiGet<Webhook[]>('/api/user/webhooks')
       ]);
 
-      if (!settingsRes.ok) throw new Error('Failed to fetch settings');
-      if (!webhooksRes.ok) throw new Error('Failed to fetch webhooks');
-
-      setSettings(await settingsRes.json());
-      setWebhooks(await webhooksRes.json());
+      setSettings(settingsRes);
+      setWebhooks(webhooksRes);
       setError(null);
     } catch (err: any) {
       setError(err.message);
@@ -58,12 +56,7 @@ export function Settings() {
     setSettings(newSettings);
 
     try {
-      const res = await fetch('/api/user/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSettings)
-      });
-      if (!res.ok) throw new Error('Failed to update settings');
+      await apiPut('/api/user/settings', newSettings);
     } catch (err: any) {
       setError(err.message);
       // Revert on failure
@@ -77,15 +70,11 @@ export function Settings() {
 
     try {
       setAddingWebhook(true);
-      const res = await fetch('/api/user/webhooks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newWebhookName, webhookUrl: newWebhookUrl })
+      const newWebhook = await apiPost<Webhook>('/api/user/webhooks', { 
+        name: newWebhookName, 
+        webhookUrl: newWebhookUrl 
       });
 
-      if (!res.ok) throw new Error('Failed to add webhook');
-
-      const newWebhook = await res.json();
       setWebhooks([newWebhook, ...webhooks]);
       setNewWebhookName('');
       setNewWebhookUrl('');
@@ -100,9 +89,7 @@ export function Settings() {
     if (!confirm('Are you sure you want to delete this webhook?')) return;
 
     try {
-      const res = await fetch(`/api/user/webhooks/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete webhook');
-
+      await apiDelete(`/api/user/webhooks/${id}`);
       setWebhooks(webhooks.filter(w => w.id !== id));
     } catch (err: any) {
       setError(err.message);
@@ -220,6 +207,26 @@ export function Settings() {
             ))
           )}
         </div>
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-6 border border-red-900/50 space-y-4">
+        <h2 className="text-xl font-bold text-red-500">Danger Zone</h2>
+        <p className="text-sm text-gray-400">Permanently delete your account and all tracked data. This cannot be undone.</p>
+        <button
+          onClick={async () => {
+            if (confirm('Are you absolutely sure you want to delete your account? This is irreversible.')) {
+              try {
+                await apiDelete('/api/user');
+                window.location.href = '/';
+              } catch (err: any) {
+                setError(err.message);
+              }
+            }
+          }}
+          className="bg-red-600/20 text-red-500 border border-red-800 hover:bg-red-600 hover:text-white px-4 py-2 rounded-md font-medium transition-colors"
+        >
+          Delete Account
+        </button>
       </div>
     </div>
   );

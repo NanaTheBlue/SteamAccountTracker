@@ -17,5 +17,6 @@ namespace WebApplication1.Repository
         Task<List<WebhookDto>> GetWebhooks(Guid userId);
         Task<WebhookDto> AddWebhook(Guid userId, string name, string url);
         Task<bool> DeleteWebhook(Guid userId, Guid webhookId);
+        Task<bool> DeleteUser(Guid id);
     }
 }

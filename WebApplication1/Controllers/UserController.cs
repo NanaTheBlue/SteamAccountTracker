@@ -180,5 +180,26 @@ namespace WebApplication1.Controllers
 
             return Ok(new { message = "Webhook deleted successfully." });
         }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteAccount([FromServices] WebApplication1.Repository.IUserRepository userRepository)
+        {
+            var user = (AuthenticatedUser?)HttpContext.Items["User"];
+            if (user == null) return Unauthorized();
+
+            var success = await userRepository.DeleteUser(user.Id);
+            if (!success) return StatusCode(500, "Failed to delete account.");
+
+            // Clear session cookie
+            Response.Cookies.Delete("sessionId", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Path = "/"
+            });
+
+            return Ok(new { message = "Account deleted successfully." });
+        }
     }
 }

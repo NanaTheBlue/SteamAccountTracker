@@ -317,5 +317,23 @@ namespace WebApplication1.Repository
                 throw;
             }
         }
+
+        public async Task<bool> DeleteUser(Guid id)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            try
+            {
+                using var cmd = new SqlCommand("DELETE FROM Users WHERE Id = @Id;", conn);
+                cmd.Parameters.Add("@Id", SqlDbType.UniqueIdentifier).Value = id;
+                return await cmd.ExecuteNonQueryAsync() > 0;
+            }
+            catch (SqlException e)
+            {
+                _logger.LogError(e, "Failed to delete user");
+                throw;
+            }
+        }
     }
 }

@@ -38,6 +38,8 @@ namespace WebApplication1.Tests.Controllers
         
         public Task<bool> DeleteWebhook(Guid userId, Guid webhookId) =>
             DeleteWebhookHandler != null ? DeleteWebhookHandler(userId, webhookId) : Task.FromResult(true);
+
+        public Task<bool> DeleteUser(Guid id) => Task.FromResult(true);
     }
 
     public class FakeUserService : IUserService
