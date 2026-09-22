@@ -162,7 +162,6 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: root
           key: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
-          password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             set -e
             cd /opt/cheaterwatch
