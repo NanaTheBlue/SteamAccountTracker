@@ -1,7 +1,6 @@
 ALTER TABLE Users ADD
     EmailNotificationsEnabled BIT NOT NULL DEFAULT 1,
     DiscordNotificationsEnabled BIT NOT NULL DEFAULT 1;
-GO
 
 CREATE TABLE UserWebhooks (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
@@ -10,5 +9,4 @@ CREATE TABLE UserWebhooks (
     WebhookUrl NVARCHAR(1000) NOT NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
-GO
 
