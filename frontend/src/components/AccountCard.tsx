@@ -2,6 +2,9 @@ import { useState } from 'react';
 
 export interface TrackedAccountDto {
   steamId64: string;
+  personaName?: string;
+  avatar?: string;
+  avatarFull?: string;
   vacBanned: boolean;
   numberOfVACBans: number;
   numberOfGameBans: number;
@@ -23,22 +26,31 @@ export function AccountCard({ account, onUntrack }: AccountCardProps) {
   return (
     <div className="bg-gray-800 rounded-lg p-5 border border-gray-700 flex flex-col h-full shadow-md hover:border-gray-600 transition-colors">
       <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-100 truncate" title={account.steamId64}>
-            {account.steamId64}
-          </h3>
-          <div className="flex flex-col gap-1 mt-1">
-            <a 
-              href={`https://steamcommunity.com/profiles/${account.steamId64}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-blue-400 hover:text-blue-300 hover:underline"
-            >
-              View Profile ↗
-            </a>
-            <span className="text-xs text-gray-500">
-              {account.trackersCount} {account.trackersCount === 1 ? 'user tracking' : 'users tracking'}
-            </span>
+        <div className="flex items-center gap-3">
+          {account.avatarFull ? (
+            <img src={account.avatarFull} alt={account.personaName || account.steamId64} className="w-12 h-12 rounded shadow-sm" />
+          ) : (
+            <div className="w-12 h-12 bg-gray-700 rounded flex items-center justify-center shadow-sm">
+              <span className="text-gray-500 text-xs">?</span>
+            </div>
+          )}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-100 truncate max-w-[150px] sm:max-w-[200px]" title={account.personaName || account.steamId64}>
+              {account.personaName || account.steamId64}
+            </h3>
+            <div className="flex flex-col gap-0.5 mt-0.5">
+              <a 
+                href={`https://steamcommunity.com/profiles/${account.steamId64}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+              >
+                {account.steamId64} ↗
+              </a>
+              <span className="text-[10px] text-gray-500">
+                {account.trackersCount} {account.trackersCount === 1 ? 'user tracking' : 'users tracking'}
+              </span>
+            </div>
           </div>
         </div>
         

@@ -36,6 +36,24 @@ namespace WebApplication1.Controllers
             try
             {
                 var accounts = await _steamRepository.GetTrackedAccountsByUser(user.Id.ToString());
+                
+                if (accounts.Any())
+                {
+                    var steamIds = accounts.Select(a => a.SteamId64).ToList();
+                    var summaries = await _steamService.GetPlayerSummaries(steamIds);
+                    
+                    var summaryMap = summaries.ToDictionary(s => s.steamid!);
+                    foreach (var account in accounts)
+                    {
+                        if (summaryMap.TryGetValue(account.SteamId64, out var summary))
+                        {
+                            account.PersonaName = summary.personaname;
+                            account.Avatar = summary.avatar;
+                            account.AvatarFull = summary.avatarfull;
+                        }
+                    }
+                }
+
                 return Ok(new { accounts });
             }
             catch (Exception e)

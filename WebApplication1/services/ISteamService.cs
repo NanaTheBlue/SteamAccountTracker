@@ -8,5 +8,6 @@ namespace WebApplication1.Services
 
         Task<string?> ConvertVanityToSteamID64(String vanityUrl);
         Task<string?> ResolveSteamID64(string input);
+        Task<List<WebApplication1.Dtos.SteamPlayerSummary>> GetPlayerSummaries(IEnumerable<string> steamIds);
     }
 }

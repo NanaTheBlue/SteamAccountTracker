@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Safely construct the baseURL
+const host = process.env.SERVER_HOST?.trim();
+const baseURL = host ? (host.startsWith('http') ? host : `http://${host}`) : 'http://localhost:5173';
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -9,7 +13,7 @@ export default defineConfig({
   reporter: 'html',
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.E2E_BASE_URL || 'http://localhost:5173',
+    baseURL,
     trace: 'on-first-retry',
   },
   projects: [

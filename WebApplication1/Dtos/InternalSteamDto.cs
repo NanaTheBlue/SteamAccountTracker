@@ -5,6 +5,9 @@ namespace WebApplication1.Dtos
     public class TrackedAccountDto
     {
         public required string SteamId64 { get; set; }
+        public string? PersonaName { get; set; }
+        public string? Avatar { get; set; }
+        public string? AvatarFull { get; set; }
         public bool VACBanned { get; set; }
         public int NumberOfVACBans { get; set; }
         public int NumberOfGameBans { get; set; }

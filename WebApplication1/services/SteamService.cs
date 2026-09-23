@@ -118,6 +118,34 @@ namespace WebApplication1.Services
 
 
 
+        public async Task<List<SteamPlayerSummary>> GetPlayerSummaries(IEnumerable<string> steamIds)
+        {
+            var results = new List<SteamPlayerSummary>();
+            var idsArray = steamIds.Distinct().ToArray();
+            
+            // Steam API allows up to 100 steamids per request
+            for (int i = 0; i < idsArray.Length; i += 100)
+            {
+                var batch = idsArray.Skip(i).Take(100);
+                var csv = string.Join(",", batch);
+                
+                var endpoint = $"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={_apiKey}&steamids={csv}";
+                try
+                {
+                    var response = await _client.GetFromJsonAsync<SteamPlayerSummariesResponse>(endpoint);
+                    if (response?.response?.players != null)
+                    {
+                        results.AddRange(response.response.players);
+                    }
+                }
+                catch
+                {
+                    // Log or swallow
+                }
+            }
+            
+            return results;
+        }
 
     }
 

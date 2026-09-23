@@ -52,6 +52,9 @@ namespace WebApplication1.Tests.Controllers
 
         public Task<string?> ConvertVanityToSteamID64(string vanityUrl) =>
             ConvertVanityToSteamID64Handler != null ? ConvertVanityToSteamID64Handler(vanityUrl) : Task.FromResult<string?>(null);
+
+        public Task<List<SteamPlayerSummary>> GetPlayerSummaries(IEnumerable<string> steamIds) =>
+            Task.FromResult(new List<SteamPlayerSummary>());
     }
 
     public class SteamControllerTests
