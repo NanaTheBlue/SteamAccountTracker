@@ -1,8 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // Safely construct the baseURL
-const host = process.env.SERVER_HOST?.trim();
-const baseURL = host ? (host.startsWith('http') ? host : `http://${host}`) : 'http://localhost:5173';
+const host = process.env.E2E_BASE_URL?.trim();
+const baseURL = host || 'http://localhost:5173';
 
 export default defineConfig({
   testDir: './tests',
