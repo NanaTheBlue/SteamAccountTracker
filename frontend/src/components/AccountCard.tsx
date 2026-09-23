@@ -25,17 +25,17 @@ export function AccountCard({ account, onUntrack }: AccountCardProps) {
 
   return (
     <div className="bg-gray-800 rounded-lg p-5 border border-gray-700 flex flex-col h-full shadow-md hover:border-gray-600 transition-colors">
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex justify-between items-start mb-4 gap-2">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           {account.avatarFull ? (
-            <img src={account.avatarFull} alt={account.personaName || account.steamId64} className="w-12 h-12 rounded shadow-sm" />
+            <img src={account.avatarFull} alt={account.personaName || account.steamId64} className="w-12 h-12 rounded shadow-sm flex-shrink-0" />
           ) : (
-            <div className="w-12 h-12 bg-gray-700 rounded flex items-center justify-center shadow-sm">
+            <div className="w-12 h-12 bg-gray-700 rounded flex flex-shrink-0 items-center justify-center shadow-sm">
               <span className="text-gray-500 text-xs">?</span>
             </div>
           )}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-100 truncate max-w-[150px] sm:max-w-[200px]" title={account.personaName || account.steamId64}>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-lg font-semibold text-gray-100 truncate" title={account.personaName || account.steamId64}>
               {account.personaName || account.steamId64}
             </h3>
             <div className="flex flex-col gap-0.5 mt-0.5">
@@ -55,23 +55,23 @@ export function AccountCard({ account, onUntrack }: AccountCardProps) {
         </div>
         
         {isClean ? (
-          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-900/50 text-green-400 border border-green-800">
+          <span className="flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-900/50 text-green-400 border border-green-800">
             Clean
           </span>
         ) : (
-          <div className="flex flex-col gap-1 items-end">
+          <div className="flex flex-col gap-1 items-end flex-shrink-0">
             {account.vacBanned && (
-              <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-400 border border-red-800">
+              <span className="flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-400 border border-red-800">
                 VAC Banned
               </span>
             )}
             {account.numberOfGameBans > 0 && (
-              <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-400 border border-red-800">
+              <span className="flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-400 border border-red-800">
                 Game Banned
               </span>
             )}
             {account.communityBanned && (
-              <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-400 border border-red-800">
+              <span className="flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-400 border border-red-800">
                 Community Banned
               </span>
             )}
