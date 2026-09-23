@@ -8,6 +8,7 @@ namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting("api")]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;

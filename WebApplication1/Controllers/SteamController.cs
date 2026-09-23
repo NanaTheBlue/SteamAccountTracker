@@ -9,6 +9,7 @@ namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting("api")]
     public class SteamController : ControllerBase
     {
         private readonly ISteamService _steamService;
