@@ -36,24 +36,6 @@ namespace WebApplication1.Controllers
             try
             {
                 var accounts = await _steamRepository.GetTrackedAccountsByUser(user.Id.ToString());
-                
-                if (accounts.Any())
-                {
-                    var steamIds = accounts.Select(a => a.SteamId64).ToList();
-                    var summaries = await _steamService.GetPlayerSummaries(steamIds);
-                    
-                    var summaryMap = summaries.ToDictionary(s => s.steamid!);
-                    foreach (var account in accounts)
-                    {
-                        if (summaryMap.TryGetValue(account.SteamId64, out var summary))
-                        {
-                            account.PersonaName = summary.personaname;
-                            account.Avatar = summary.avatar;
-                            account.AvatarFull = summary.avatarfull;
-                        }
-                    }
-                }
-
                 return Ok(new { accounts });
             }
             catch (Exception e)
@@ -90,7 +72,23 @@ namespace WebApplication1.Controllers
 
             try
             {
-                var isNewlyTracked = await _steamRepository.TrackSteamAccount(user.Id.ToString(), steamId64);
+                string? personaName = null;
+                string? avatar = null;
+                string? avatarFull = null;
+
+                // Only hit the external Steam API if we don't already have profile data for this account
+                var hasProfileData = await _steamRepository.ProfileDataExists(steamId64);
+                if (!hasProfileData)
+                {
+                    var summaries = await _steamService.GetPlayerSummaries(new[] { steamId64 });
+                    var summary = summaries.FirstOrDefault();
+                    
+                    personaName = summary?.personaname;
+                    avatar = summary?.avatar;
+                    avatarFull = summary?.avatarfull;
+                }
+
+                var isNewlyTracked = await _steamRepository.TrackSteamAccount(user.Id.ToString(), steamId64, personaName, avatar, avatarFull);
                 
                 if (!isNewlyTracked)
                 {

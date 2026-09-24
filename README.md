@@ -7,7 +7,7 @@ CheaterWatch is a scalable, full stack application that allows users to track St
 This project is built for high performance and scalability using a decoupled architecture:
 
 *   **Frontend**: React 19 Single Page Application built with Vite and TailwindCSS.
-*   **Backend API**: ASP.NET Core Minimal API (.NET 8/10) providing highly secure, stateful session authentication and strict rate-limiting.
+*   **Backend API**: ASP.NET Core Minimal API (.NET 10) providing highly secure, stateful session authentication and strict rate-limiting.
 *   **Database**: Microsoft SQL Server.
 *   **Background Worker**: A serverless Cloudflare Worker (TypeScript) triggered via Cron. 
 *   **Emails**: Integrated with the Resend API for reliable ban notifications.

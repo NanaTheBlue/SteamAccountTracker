@@ -18,7 +18,16 @@ namespace WebApplication1.Repository
             _logger = logger;
         }
 
-        public async Task<bool> TrackSteamAccount(string userId, string steamId64)
+        public async Task<bool> ProfileDataExists(string steamId64)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            using var cmd = new SqlCommand("SELECT 1 FROM SteamAccounts WHERE SteamId64 = @steamId64 AND PersonaName IS NOT NULL;", conn);
+            cmd.Parameters.Add("@steamId64", SqlDbType.NVarChar, 17).Value = steamId64;
+            return await cmd.ExecuteScalarAsync() != null;
+        }
+
+        public async Task<bool> TrackSteamAccount(string userId, string steamId64, string? personaName, string? avatarUrl, string? avatarFullUrl)
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -36,14 +45,33 @@ namespace WebApplication1.Repository
                     if (result != null)
                     {
                         steamAccountId = (Guid)result;
+                        
+                        // Optionally update the existing profile info
+                        if (personaName != null || avatarUrl != null)
+                        {
+                            using var updateCmd = new SqlCommand(@"
+                                UPDATE SteamAccounts 
+                                SET PersonaName = COALESCE(@personaName, PersonaName),
+                                    AvatarUrl = COALESCE(@avatarUrl, AvatarUrl),
+                                    AvatarFullUrl = COALESCE(@avatarFullUrl, AvatarFullUrl)
+                                WHERE Id = @id;", conn, transaction);
+                            updateCmd.Parameters.Add("@id", SqlDbType.UniqueIdentifier).Value = steamAccountId;
+                            updateCmd.Parameters.Add("@personaName", SqlDbType.NVarChar, 100).Value = (object?)personaName ?? DBNull.Value;
+                            updateCmd.Parameters.Add("@avatarUrl", SqlDbType.NVarChar, 255).Value = (object?)avatarUrl ?? DBNull.Value;
+                            updateCmd.Parameters.Add("@avatarFullUrl", SqlDbType.NVarChar, 255).Value = (object?)avatarFullUrl ?? DBNull.Value;
+                            await updateCmd.ExecuteNonQueryAsync();
+                        }
                     }
                     else
                     {
                         using var insertCmd = new SqlCommand(@"
-                            INSERT INTO SteamAccounts (SteamId64)
+                            INSERT INTO SteamAccounts (SteamId64, PersonaName, AvatarUrl, AvatarFullUrl)
                             OUTPUT inserted.Id
-                            VALUES (@steamId64);", conn, transaction);
+                            VALUES (@steamId64, @personaName, @avatarUrl, @avatarFullUrl);", conn, transaction);
                         insertCmd.Parameters.Add("@steamId64", SqlDbType.NVarChar, 17).Value = steamId64;
+                        insertCmd.Parameters.Add("@personaName", SqlDbType.NVarChar, 100).Value = (object?)personaName ?? DBNull.Value;
+                        insertCmd.Parameters.Add("@avatarUrl", SqlDbType.NVarChar, 255).Value = (object?)avatarUrl ?? DBNull.Value;
+                        insertCmd.Parameters.Add("@avatarFullUrl", SqlDbType.NVarChar, 255).Value = (object?)avatarFullUrl ?? DBNull.Value;
                         steamAccountId = (Guid)(await insertCmd.ExecuteScalarAsync())!;
                     }
                 }
@@ -118,6 +146,7 @@ namespace WebApplication1.Repository
             {
                 using var cmd = new SqlCommand(@"
                     SELECT sa.SteamId64, sa.VACBanned, sa.NumberOfVACBans, sa.NumberOfGameBans, sa.CommunityBanned,
+                           sa.PersonaName, sa.AvatarUrl, sa.AvatarFullUrl,
                            (SELECT COUNT(*) FROM UserSteamAccounts WHERE SteamAccountId = sa.Id) AS TrackersCount
                     FROM SteamAccounts sa
                     INNER JOIN UserSteamAccounts usa ON sa.Id = usa.SteamAccountId
@@ -134,6 +163,9 @@ namespace WebApplication1.Repository
                 var numVacOrd = reader.GetOrdinal("NumberOfVACBans");
                 var numGameOrd = reader.GetOrdinal("NumberOfGameBans");
                 var communityOrd = reader.GetOrdinal("CommunityBanned");
+                var personaOrd = reader.GetOrdinal("PersonaName");
+                var avatarOrd = reader.GetOrdinal("AvatarUrl");
+                var avatarFullOrd = reader.GetOrdinal("AvatarFullUrl");
                 var trackersCountOrd = reader.GetOrdinal("TrackersCount");
 
                 while (await reader.ReadAsync())
@@ -141,6 +173,9 @@ namespace WebApplication1.Repository
                     accounts.Add(new TrackedAccountDto
                     {
                         SteamId64 = reader.GetString(steamId64Ord),
+                        PersonaName = reader.IsDBNull(personaOrd) ? null : reader.GetString(personaOrd),
+                        Avatar = reader.IsDBNull(avatarOrd) ? null : reader.GetString(avatarOrd),
+                        AvatarFull = reader.IsDBNull(avatarFullOrd) ? null : reader.GetString(avatarFullOrd),
                         VACBanned = reader.GetBoolean(vacBannedOrd),
                         NumberOfVACBans = reader.GetInt32(numVacOrd),
                         NumberOfGameBans = reader.GetInt32(numGameOrd),
@@ -166,7 +201,8 @@ namespace WebApplication1.Repository
             try
             {
                 using var cmd = new SqlCommand(@"
-                    SELECT SteamId64, VACBanned, NumberOfVACBans, NumberOfGameBans, CommunityBanned, 0 AS TrackersCount
+                    SELECT SteamId64, VACBanned, NumberOfVACBans, NumberOfGameBans, CommunityBanned, 0 AS TrackersCount,
+                           PersonaName, AvatarUrl, AvatarFullUrl
                     FROM SteamAccounts
                     ORDER BY LastScannedAt ASC
                     OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;", conn);
@@ -183,12 +219,18 @@ namespace WebApplication1.Repository
                 var numGameOrd = reader.GetOrdinal("NumberOfGameBans");
                 var communityOrd = reader.GetOrdinal("CommunityBanned");
                 var trackersCountOrd = reader.GetOrdinal("TrackersCount");
+                var personaOrd = reader.GetOrdinal("PersonaName");
+                var avatarOrd = reader.GetOrdinal("AvatarUrl");
+                var avatarFullOrd = reader.GetOrdinal("AvatarFullUrl");
 
                 while (await reader.ReadAsync())
                 {
                     accounts.Add(new TrackedAccountDto
                     {
                         SteamId64 = reader.GetString(steamId64Ord),
+                        PersonaName = reader.IsDBNull(personaOrd) ? null : reader.GetString(personaOrd),
+                        Avatar = reader.IsDBNull(avatarOrd) ? null : reader.GetString(avatarOrd),
+                        AvatarFull = reader.IsDBNull(avatarFullOrd) ? null : reader.GetString(avatarFullOrd),
                         VACBanned = reader.GetBoolean(vacBannedOrd),
                         NumberOfVACBans = reader.GetInt32(numVacOrd),
                         NumberOfGameBans = reader.GetInt32(numGameOrd),

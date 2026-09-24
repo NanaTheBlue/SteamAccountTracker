@@ -18,8 +18,12 @@ namespace WebApplication1.Tests.Controllers
         public Func<int, int, Task<List<TrackedAccountDto>>>? GetAllTrackedAccountsHandler { get; set; }
         public Func<List<BanUpdateEntry>, Task<List<NotificationEntry>>>? UpdateBanStatusHandler { get; set; }
         public Func<List<string>, Task>? UpdateLastScannedAtHandler { get; set; }
+        public Func<string, Task<bool>>? ProfileDataExistsHandler { get; set; }
 
-        public Task<bool> TrackSteamAccount(string userId, string steamId64) =>
+        public Task<bool> ProfileDataExists(string steamId64) =>
+            ProfileDataExistsHandler != null ? ProfileDataExistsHandler(steamId64) : Task.FromResult(false);
+
+        public Task<bool> TrackSteamAccount(string userId, string steamId64, string? personaName, string? avatarUrl, string? avatarFullUrl) =>
             TrackSteamAccountHandler != null ? TrackSteamAccountHandler(userId, steamId64) : Task.FromResult(true);
 
         public Task<bool> DeleteTrackedAccount(string userId, string steamId64) =>
