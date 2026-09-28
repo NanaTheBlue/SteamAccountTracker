@@ -159,6 +159,13 @@ namespace WebApplication1.Controllers
             var user = (AuthenticatedUser?)HttpContext.Items["User"];
             if (user == null) return Unauthorized();
 
+            // Validate webhook URL is a legitimate Discord webhook to prevent SSRF
+            if (!request.WebhookUrl.StartsWith("https://discord.com/api/webhooks/", StringComparison.OrdinalIgnoreCase) &&
+                !request.WebhookUrl.StartsWith("https://discordapp.com/api/webhooks/", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("Only Discord webhook URLs are supported (https://discord.com/api/webhooks/...).");
+            }
+
             try
             {
                 var webhook = await userRepository.AddWebhook(user.Id, request.Name, request.WebhookUrl);

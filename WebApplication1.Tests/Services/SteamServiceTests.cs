@@ -42,7 +42,7 @@ namespace WebApplication1.Tests.Services
         {
             var httpHandler = new FakeHttpMessageHandler(handler ?? (_ => new HttpResponseMessage(HttpStatusCode.OK)));
             var client = new HttpClient(httpHandler);
-            return new SteamService(client, _config);
+            return new SteamService(client, _config, Microsoft.Extensions.Logging.Abstractions.NullLogger<SteamService>.Instance);
         }
 
         [Theory]
@@ -196,7 +196,7 @@ namespace WebApplication1.Tests.Services
                 .Build();
             var client = new HttpClient();
 
-            Assert.Throws<InvalidOperationException>(() => new SteamService(client, emptyConfig));
+            Assert.Throws<InvalidOperationException>(() => new SteamService(client, emptyConfig, Microsoft.Extensions.Logging.Abstractions.NullLogger<SteamService>.Instance));
         }
     }
 }

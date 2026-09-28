@@ -97,6 +97,11 @@ namespace WebApplication1.Services
                 throw new ArgumentException("Password must be at least 10 characters in length.");
             }
 
+            if (registerRequest.Password.Length > 64)
+            {
+                throw new ArgumentException("Password must be 64 characters or less.");
+            }
+
             registerRequest.Username = registerRequest.Username.Trim();
             if (registerRequest.Username.Length > 50)
             {

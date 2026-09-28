@@ -148,13 +148,13 @@ namespace WebApplication1.Tests.Controllers
                 WebhookUrl = url 
             });
 
-            var request = new AddWebhookRequest { Name = "NewWebhook", WebhookUrl = "http://discord.com" };
+            var request = new AddWebhookRequest { Name = "NewWebhook", WebhookUrl = "https://discord.com/api/webhooks/123456/abcdef" };
             var result = await _controller.AddWebhook(request, _repo);
 
             var okResult = Assert.IsType<OkObjectResult>(result);
             var webhook = Assert.IsType<WebhookDto>(okResult.Value);
             Assert.Equal("NewWebhook", webhook.Name);
-            Assert.Equal("http://discord.com", webhook.WebhookUrl);
+            Assert.Equal("https://discord.com/api/webhooks/123456/abcdef", webhook.WebhookUrl);
         }
 
         [Fact]

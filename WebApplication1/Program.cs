@@ -49,9 +49,9 @@ builder.Services.AddHealthChecks()
             await cmd.ExecuteScalarAsync();
             return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Unhealthy(ex.Message);
+            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Unhealthy("Database is unreachable.");
         }
     });
 

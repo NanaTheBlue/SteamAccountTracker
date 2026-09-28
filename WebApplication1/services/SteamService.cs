@@ -9,11 +9,13 @@ namespace WebApplication1.Services
     {
         private readonly HttpClient _client;
         private readonly string _apiKey;
+        private readonly ILogger<SteamService> _logger;
 
 
-        public SteamService(HttpClient client, IConfiguration config)
+        public SteamService(HttpClient client, IConfiguration config, ILogger<SteamService> logger)
         {
             _client = client;
+            _logger = logger;
             var apiKey = config["STEAM_API_KEY"];
             if (string.IsNullOrWhiteSpace(apiKey))
             {
@@ -138,9 +140,9 @@ namespace WebApplication1.Services
                         results.AddRange(response.response.players);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Log or swallow
+                    _logger.LogError(ex, "Failed to fetch player summaries from Steam API for batch starting at index {Index}", i);
                 }
             }
             
