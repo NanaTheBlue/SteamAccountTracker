@@ -1,16 +1,19 @@
-import { Link } from 'react-router';
+import { Button } from '../components/ui/Button';
 
 export function NotFound() {
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center px-4">
-      <h1 className="text-6xl font-bold text-gray-700 mb-4">404</h1>
-      <h2 className="text-2xl font-semibold text-gray-300 mb-8">Page not found</h2>
-      <Link 
-        to="/" 
-        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
+    <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
+      <h1
+        className="glitch glitch-active inline-block text-[8rem] leading-none text-primary sm:text-[10rem]"
+        data-text="404"
       >
-        Return Home
-      </Link>
+        404
+      </h1>
+      <p className="mt-4 font-display text-2xl font-bold uppercase tracking-wider text-fg">
+        You've been kicked from this route.
+      </p>
+      <p className="mb-10 mt-2 font-mono text-sm text-muted">Reason: it doesn't exist.</p>
+      <Button to="/">Reconnect</Button>
     </div>
   );
 }

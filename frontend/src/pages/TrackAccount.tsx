@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { useState } from 'react';
-import { Link } from 'react-router';
 import { apiPost, ApiError } from '../api/client';
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Panel } from '../components/ui/Panel';
 
 export function TrackAccount() {
   const [steamInput, setSteamInput] = useState('');
@@ -19,7 +22,7 @@ export function TrackAccount() {
 
     try {
       const data = await apiPost<{ message: string; steamId64: string }>('/api/steam/track', { steamInput });
-      setSuccessMsg(`Successfully tracked account with SteamID64: ${data.steamId64}`);
+      setSuccessMsg(`Target acquired: ${data.steamId64}. If Valve bans them, you'll hear about it.`);
       setSteamInput('');
     } catch (err) {
       if (err instanceof ApiError) {
@@ -33,61 +36,63 @@ export function TrackAccount() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
-      <div className="bg-gray-800 rounded-lg p-8 border border-gray-700 shadow-lg">
-        <h2 className="text-2xl font-bold text-white mb-6">Track a Steam Account</h2>
-        
-        {error && (
-          <div className="mb-6 bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded text-sm">
-            {error}
-          </div>
-        )}
+    <div className="mx-auto max-w-2xl px-4 py-12">
+      <PageHeader
+        eyebrow="// new target"
+        title="Flag a suspect"
+        subtitle="Add the account to your watchlist. We check its public ban status and alert you if Valve acts."
+      />
+
+      <Panel>
+        {error && <Alert tone="error" className="mb-6">{error}</Alert>}
 
         {successMsg && (
-          <div className="mb-6 bg-green-900/50 border border-green-500 text-green-200 px-4 py-3 rounded text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <span>{successMsg}</span>
-            <Link 
-              to="/"
-              className="text-center px-4 py-2 bg-green-800 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors"
-            >
-              View Dashboard
-            </Link>
-          </div>
+          <Alert tone="success" className="mb-6">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <span>{successMsg}</span>
+              <Button to="/dashboard" size="sm" variant="ghost">
+                View suspects
+              </Button>
+            </div>
+          </Alert>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="steamInput" className="block text-sm font-medium text-gray-300 mb-2">
-              Enter a SteamID64, profile URL, vanity URL, or STEAM_X:Y:Z
+            <label htmlFor="steamInput" className="field-label">
+              Steam profile link or ID
             </label>
             <input
               id="steamInput"
               type="text"
               required
+              maxLength={300}
+              autoComplete="off"
+              spellCheck={false}
               value={steamInput}
               onChange={(e) => setSteamInput(e.target.value)}
-              placeholder="e.g. 76561197960287930"
-              className="appearance-none block w-full px-4 py-3 border border-gray-600 rounded-md shadow-sm bg-gray-900 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="https://steamcommunity.com/id/..."
+              className="field-input py-3 text-base"
             />
+            <p className="field-hint">
+              Paste their profile link from Steam. A SteamID64 or STEAM_X:Y:Z works too.
+            </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button
-              type="submit"
-              disabled={isLoading || !steamInput.trim()}
-              className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Tracking...' : 'Track Account'}
-            </button>
-            <Link 
-              to="/"
-              className="text-gray-400 hover:text-gray-300 text-sm font-medium"
-            >
-              Back to Dashboard
-            </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            <Button type="submit" disabled={isLoading || !steamInput.trim()}>
+              {isLoading ? 'Acquiring...' : 'Track account'}
+            </Button>
+            <Button to="/dashboard" variant="ghost">
+              Back to suspects
+            </Button>
           </div>
         </form>
-      </div>
+
+        <p className="mt-6 border-t border-line pt-4 font-mono text-xs text-dim">
+          Heads up: tracking doesn't report anyone or speed up a ban. If they're cheating, report them in-game too.
+        </p>
+      </Panel>
     </div>
   );
 }

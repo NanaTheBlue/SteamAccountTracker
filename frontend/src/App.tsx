@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
@@ -10,6 +11,11 @@ import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { NotFound } from './pages/NotFound';
+
+// Local dev only: lazy + DEV guard keeps it out of production bundles.
+const DevMockBadge = import.meta.env.DEV
+  ? lazy(() => import('./dev/DevTools').then(m => ({ default: m.DevMockBadge })))
+  : null;
 
 function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -24,7 +30,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <div className="min-h-screen bg-gray-950 flex flex-col">
+        <div className="min-h-screen flex flex-col">
           <Navbar />
           <main className="flex-grow">
             <Routes>
@@ -46,6 +52,14 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
+          <footer className="border-t border-line py-6 text-center mono-label">
+            CheaterWatch · reads public Steam data only · not affiliated with Valve
+          </footer>
+          {DevMockBadge && (
+            <Suspense fallback={null}>
+              <DevMockBadge />
+            </Suspense>
+          )}
         </div>
       </BrowserRouter>
     </AuthProvider>

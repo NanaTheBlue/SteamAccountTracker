@@ -1,5 +1,18 @@
 import { NavLink, Link, useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
+import { Button } from './ui/Button';
+
+const tabClass = ({ isActive }: { isActive: boolean }) =>
+  `relative px-1.5 sm:px-3 py-5 font-display text-xs sm:text-sm font-bold uppercase tracking-[0.08em] sm:tracking-[0.14em] transition-colors ${
+    isActive
+      ? 'text-primary after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-primary after:shadow-glow-primary'
+      : 'text-muted hover:text-fg'
+  }`;
+
+/** Slanted amber divider between nav tabs. */
+function TabDivider() {
+  return <span className="mx-0.5 inline-block h-6 w-0.5 rotate-[22deg] bg-primary sm:mx-1" aria-hidden="true" />;
+}
 
 export function Navbar() {
   const { user, logout, loading } = useAuth();
@@ -11,80 +24,60 @@ export function Navbar() {
   };
 
   return (
-    <nav className="bg-gray-900 border-b border-gray-800 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
-          <div className="flex-shrink-0 flex items-center">
-            <Link to={user ? "/dashboard" : "/"} className="text-xl font-bold text-blue-500">
-              CheaterWatch
-            </Link>
-          </div>
-          <div className="flex items-center space-x-4">
+    <nav className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between gap-4">
+          <Link to={user ? '/dashboard' : '/'} aria-label="CheaterWatch home" className="group flex flex-shrink-0 items-center gap-2">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-primary" aria-hidden="true">
+              <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" />
+              <path d="M12 1v6M12 17v6M1 12h6M17 12h6" stroke="currentColor" strokeWidth="2" />
+            </svg>
+            <span
+              className="glitch hidden sm:inline-block font-display text-xl font-bold uppercase tracking-[0.12em] text-fg"
+              data-text="Cheater/Watch"
+            >
+              Cheater<span className="text-primary">/</span>Watch
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-1 sm:gap-2">
             {loading ? (
-              <div className="flex space-x-4 animate-pulse">
-                <div className="h-9 w-16 bg-gray-800 rounded-md hidden sm:block"></div>
-                <div className="h-9 w-20 bg-gray-800 rounded-md"></div>
+              <div className="flex gap-3 animate-pulse">
+                <div className="hidden h-8 w-20 bg-surface-2 sm:block" />
+                <div className="h-8 w-24 bg-surface-2" />
               </div>
             ) : user ? (
               <>
-                <NavLink 
-                  to="/dashboard" 
-                  className={({ isActive }) => 
-                    `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                    }`
-                  }
-                >
-                  Dashboard
+                <NavLink to="/dashboard" className={tabClass}>
+                  Suspects
                 </NavLink>
-                <NavLink 
-                  to="/track" 
-                  className={({ isActive }) => 
-                    `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                    }`
-                  }
-                >
-                  Track Account
+                <TabDivider />
+                <NavLink to="/track" className={tabClass}>
+                  Flag<span className="hidden sm:inline"> a suspect</span>
                 </NavLink>
-                <NavLink 
-                  to="/settings" 
-                  className={({ isActive }) => 
-                    `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                    }`
-                  }
-                >
+                <TabDivider />
+                <NavLink to="/settings" className={tabClass}>
                   Settings
                 </NavLink>
-                <span className="text-gray-400 text-sm hidden sm:inline-block border-l border-gray-700 pl-4 ml-2">
-                  Hello, {user.username}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                <span
+                  data-testid="nav-operator"
+                  className="ml-2 hidden items-center gap-2 border-l border-line pl-4 font-mono text-xs text-muted md:inline-flex"
                 >
-                  Logout
-                </button>
+                  <span className="h-1.5 w-1.5 rounded-full bg-clean shadow-glow-clean" aria-hidden="true" />
+                  operator: <span className="text-fg">{user.username}</span>
+                </span>
+                <Button variant="ghost" size="sm" className="ml-1 sm:ml-2" onClick={handleLogout}>
+                  Log out
+                </Button>
               </>
             ) : (
               <>
-                <NavLink 
-                  to="/login"
-                  className={({ isActive }) => 
-                    `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                    }`
-                  }
-                >
-                  Login
+                <NavLink to="/login" className={tabClass}>
+                  Log in
                 </NavLink>
-                <NavLink 
-                  to="/register"
-                  className="px-3 py-2 rounded-md text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                >
-                  Register
-                </NavLink>
+                <Button to="/register" size="sm" className="ml-2">
+                  Enlist
+                </Button>
               </>
             )}
           </div>

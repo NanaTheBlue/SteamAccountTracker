@@ -1,6 +1,11 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Sentry from '@sentry/react';
+import '@fontsource-variable/inter';
+import '@fontsource-variable/jetbrains-mono';
+import '@fontsource/rajdhani/500.css';
+import '@fontsource/rajdhani/600.css';
+import '@fontsource/rajdhani/700.css';
 import './index.css';
 import App from './App';
 
@@ -24,7 +29,7 @@ if (!container) {
 const root = createRoot(container);
 root.render(
   <React.StrictMode>
-    <Sentry.ErrorBoundary fallback={<div className="p-8 text-center text-red-500">An unexpected error occurred. Please refresh the page.</div>}>
+    <Sentry.ErrorBoundary fallback={<div className="p-8 text-center font-mono text-danger">An unexpected error occurred. Please refresh the page.</div>}>
       <App />
     </Sentry.ErrorBoundary>
   </React.StrictMode>

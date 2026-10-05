@@ -14,6 +14,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Forget the local session without calling the API (e.g. after the account is deleted). */
+  clearSession: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -57,8 +59,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const clearSession = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, clearSession }}>
       {children}
     </AuthContext.Provider>
   );

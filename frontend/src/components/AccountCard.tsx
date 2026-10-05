@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { Badge } from './ui/Badge';
+import { ConfirmButton } from './ui/ConfirmButton';
 
 export interface TrackedAccountDto {
   steamId64: string;
@@ -12,104 +13,90 @@ export interface TrackedAccountDto {
   trackersCount: number;
 }
 
+export function isAccountBanned(account: TrackedAccountDto) {
+  return account.vacBanned || account.communityBanned || account.numberOfVACBans + account.numberOfGameBans > 0;
+}
+
 interface AccountCardProps {
   account: TrackedAccountDto;
   onUntrack: (steamId64: string) => void;
 }
 
 export function AccountCard({ account, onUntrack }: AccountCardProps) {
-  const [isConfirming, setIsConfirming] = useState(false);
-
-  const totalBans = account.numberOfVACBans + account.numberOfGameBans;
-  const isClean = !account.vacBanned && !account.communityBanned && totalBans === 0;
+  const banned = isAccountBanned(account);
+  const displayName = account.personaName || account.steamId64;
 
   return (
-    <div className="bg-gray-800 rounded-lg p-5 border border-gray-700 flex flex-col h-full shadow-md hover:border-gray-600 transition-colors">
-      <div className="flex justify-between items-start mb-4 gap-2">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          {account.avatarFull ? (
-            <img src={account.avatarFull} alt={account.personaName || account.steamId64} className="w-12 h-12 rounded shadow-sm flex-shrink-0" />
-          ) : (
-            <div className="w-12 h-12 bg-gray-700 rounded flex flex-shrink-0 items-center justify-center shadow-sm">
-              <span className="text-gray-500 text-xs">?</span>
-            </div>
-          )}
+    <div
+      className={`panel flex h-full flex-col p-5 transition-colors ${
+        banned ? 'panel-danger animate-pulse-danger' : 'hover:border-line-strong'
+      }`}
+    >
+      <div className="mb-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className={`flex-shrink-0 border p-0.5 ${banned ? 'border-danger' : 'border-line-strong'}`}>
+            {account.avatarFull ? (
+              <img
+                src={account.avatarFull}
+                alt={displayName}
+                className={`h-12 w-12 ${banned ? 'grayscale-[0.6]' : ''}`}
+              />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center bg-surface-2">
+                <span className="font-mono text-xs text-dim">??</span>
+              </div>
+            )}
+          </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-lg font-semibold text-gray-100 truncate" title={account.personaName || account.steamId64}>
-              {account.personaName || account.steamId64}
+            <h3 className="truncate text-xl text-fg" title={displayName}>
+              {displayName}
             </h3>
-            <div className="flex flex-col gap-0.5 mt-0.5">
-              <a 
-                href={`https://steamcommunity.com/profiles/${account.steamId64}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
-              >
-                {account.steamId64} ↗
-              </a>
-              <span className="text-[10px] text-gray-500">
-                {account.trackersCount} {account.trackersCount === 1 ? 'user tracking' : 'users tracking'}
-              </span>
-            </div>
+            <a
+              href={`https://steamcommunity.com/profiles/${account.steamId64}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block truncate font-mono text-xs text-info hover:underline"
+            >
+              {account.steamId64} ↗
+            </a>
+            <span className="font-mono text-[10px] text-dim">
+              {account.trackersCount} {account.trackersCount === 1 ? 'player watching' : 'players watching'}
+            </span>
           </div>
         </div>
-        
-        {isClean ? (
-          <span className="flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-900/50 text-green-400 border border-green-800">
-            Clean
-          </span>
-        ) : (
-          <div className="flex flex-col gap-1 items-end flex-shrink-0">
-            {account.vacBanned && (
-              <span className="flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-400 border border-red-800">
-                VAC Banned
-              </span>
-            )}
-            {account.numberOfGameBans > 0 && (
-              <span className="flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-400 border border-red-800">
-                Game Banned
-              </span>
-            )}
-            {account.communityBanned && (
-              <span className="flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-400 border border-red-800">
-                Community Banned
-              </span>
-            )}
-          </div>
-        )}
+
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {!banned && <Badge tone="clean">No bans (yet)</Badge>}
+          {account.vacBanned && <Badge tone="danger">VAC banned</Badge>}
+          {account.numberOfGameBans > 0 && <Badge tone="danger">Game banned</Badge>}
+          {account.communityBanned && <Badge tone="danger">Community banned</Badge>}
+        </div>
       </div>
 
-      <div className="mt-2 mb-6 flex-grow">
-        <div className="text-sm text-gray-400 space-y-1">
-          <p>VAC Bans: <span className="text-gray-200 font-medium">{account.numberOfVACBans}</span></p>
-          <p>Game Bans: <span className="text-gray-200 font-medium">{account.numberOfGameBans}</span></p>
+      <dl className="mb-6 mt-2 grid grid-cols-2 gap-px border border-line bg-line font-mono text-xs">
+        <div className="bg-surface px-3 py-2">
+          <dt className="text-dim">VAC_BANS</dt>
+          <dd className={account.numberOfVACBans > 0 ? 'text-lg text-danger' : 'text-lg text-fg'}>
+            {account.numberOfVACBans}
+          </dd>
         </div>
-      </div>
+        <div className="bg-surface px-3 py-2">
+          <dt className="text-dim">GAME_BANS</dt>
+          <dd className={account.numberOfGameBans > 0 ? 'text-lg text-danger' : 'text-lg text-fg'}>
+            {account.numberOfGameBans}
+          </dd>
+        </div>
+      </dl>
 
       <div className="mt-auto">
-        {isConfirming ? (
-          <div className="flex gap-2">
-            <button 
-              onClick={() => onUntrack(account.steamId64)}
-              className="flex-1 px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
-            >
-              Confirm
-            </button>
-            <button 
-              onClick={() => setIsConfirming(false)}
-              className="flex-1 px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button 
-            onClick={() => setIsConfirming(true)}
-            className="w-full px-3 py-1.5 text-sm border border-red-900/50 text-red-400 hover:bg-red-900/20 rounded transition-colors"
-          >
-            Untrack Account
-          </button>
-        )}
+        <ConfirmButton
+          size="sm"
+          className="w-full"
+          confirmLabel="Drop"
+          onConfirm={() => onUntrack(account.steamId64)}
+        >
+          Drop target
+        </ConfirmButton>
       </div>
     </div>
   );
