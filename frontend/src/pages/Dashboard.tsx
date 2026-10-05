@@ -1,17 +1,41 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
+import { useState, useEffect, useRef } from 'react';
 import { apiGet, apiDelete, ApiError } from '../api/client';
-import { AccountCard, TrackedAccountDto } from '../components/AccountCard';
+import { AccountCard, TrackedAccountDto, isAccountBanned } from '../components/AccountCard';
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Panel } from '../components/ui/Panel';
+import { Spinner } from '../components/ui/Spinner';
 
 export function Dashboard() {
   const [accounts, setAccounts] = useState<TrackedAccountDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const messageTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const errorTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     fetchAccounts();
+    return () => {
+      clearTimeout(messageTimer.current);
+      clearTimeout(errorTimer.current);
+    };
   }, []);
+
+  // Each new toast replaces the previous one's timer, so an older timeout
+  // can't wipe a newer message early.
+  const flashMessage = (text: string) => {
+    clearTimeout(messageTimer.current);
+    setMessage(text);
+    messageTimer.current = setTimeout(() => setMessage(null), 3000);
+  };
+
+  const flashError = (text: string) => {
+    clearTimeout(errorTimer.current);
+    setError(text);
+    errorTimer.current = setTimeout(() => setError(null), 5000);
+  };
 
   const fetchAccounts = async () => {
     setIsLoading(true);
@@ -33,64 +57,60 @@ export function Dashboard() {
   const handleUntrack = async (steamId64: string) => {
     try {
       await apiDelete(`/api/steam/track/${steamId64}`);
-      setAccounts(accounts.filter(a => a.steamId64 !== steamId64));
-      setMessage(`Successfully untracked account ${steamId64}`);
-      setTimeout(() => setMessage(null), 3000);
+      setAccounts(prev => prev.filter(a => a.steamId64 !== steamId64));
+      flashMessage(`Dropped ${steamId64}. You'll no longer get alerts for this account.`);
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError('Failed to untrack account.');
-      }
-      setTimeout(() => setError(null), 5000);
+      flashError(err instanceof ApiError ? err.message : 'Failed to untrack account.');
     }
   };
 
+  const bannedCount = accounts.filter(isAccountBanned).length;
+  const stats = [
+    { label: 'Tracked', value: accounts.length, tone: 'text-fg' },
+    { label: 'Banned', value: bannedCount, tone: 'text-danger' },
+    { label: 'Still at large', value: accounts.length - bannedCount, tone: 'text-primary' },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-white">Your Tracked Accounts</h1>
-        <Link 
-          to="/track" 
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-        >
-          Track New Account
-        </Link>
-      </div>
+    <div className="mx-auto max-w-6xl px-4 py-10">
+      <PageHeader
+        eyebrow="// watchlist"
+        title="Suspect files"
+        subtitle="Everyone you've flagged, and whether Valve has caught up with them yet."
+        action={<Button to="/track">+ Flag a suspect</Button>}
+      />
 
-      {message && (
-        <div className="mb-6 p-4 bg-green-900/50 border border-green-500 text-green-200 rounded-md">
-          {message}
+      {!isLoading && accounts.length > 0 && (
+        <div className="mb-8 grid grid-cols-3 gap-px border border-line bg-line">
+          {stats.map(s => (
+            <div key={s.label} className="bg-surface px-4 py-3">
+              <p className="mono-label">{s.label}</p>
+              <p className={`font-display text-3xl font-bold ${s.tone}`}>{s.value}</p>
+            </div>
+          ))}
         </div>
       )}
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-900/50 border border-red-500 text-red-200 rounded-md">
-          {error}
-        </div>
-      )}
+      {message && <Alert tone="success" className="mb-6">{message}</Alert>}
+      {error && <Alert tone="error" className="mb-6">{error}</Alert>}
 
       {isLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
-        </div>
+        <Spinner className="py-16" label="Pulling suspect files" />
       ) : accounts.length === 0 ? (
-        <div className="text-center py-16 bg-gray-800 rounded-lg border border-gray-700">
-          <p className="text-gray-400 mb-4 text-lg">No tracked accounts yet.</p>
-          <Link 
-            to="/track" 
-            className="text-blue-500 hover:text-blue-400 font-medium"
-          >
-            Start tracking!
-          </Link>
-        </div>
+        <Panel className="py-16 text-center">
+          <p className="font-display text-2xl font-bold uppercase tracking-wider text-fg">
+            Lobby's suspiciously clean.
+          </p>
+          <p className="mb-6 mt-2 text-muted">You haven't flagged anyone yet. Got a name from your last match?</p>
+          <Button to="/track">Flag your first suspect</Button>
+        </Panel>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {accounts.map(account => (
-            <AccountCard 
-              key={account.steamId64} 
-              account={account} 
-              onUntrack={handleUntrack} 
+            <AccountCard
+              key={account.steamId64}
+              account={account}
+              onUntrack={handleUntrack}
             />
           ))}
         </div>
