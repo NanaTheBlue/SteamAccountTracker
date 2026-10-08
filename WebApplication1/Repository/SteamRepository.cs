@@ -383,5 +383,16 @@ namespace WebApplication1.Repository
 
             await cmd.ExecuteNonQueryAsync();
         }
+
+        public async Task<int> GetTrackedAccountsCountByUser(string userId)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            using var cmd = new SqlCommand("SELECT COUNT(*) FROM UserSteamAccounts WHERE UserId = @userId;", conn);
+            cmd.Parameters.Add("@userId", SqlDbType.UniqueIdentifier).Value = Guid.Parse(userId);
+            
+            var result = await cmd.ExecuteScalarAsync();
+            return result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
+        }
     }
 }

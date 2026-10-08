@@ -63,6 +63,13 @@ namespace WebApplication1.Controllers
                 return Unauthorized();
             }
 
+            // Enforce account tracking limit (500 per user)
+            int currentCount = await _steamRepository.GetTrackedAccountsCountByUser(user.Id.ToString());
+            if (currentCount >= 500)
+            {
+                return BadRequest("You have reached the maximum limit of 500 tracked Steam accounts. Please remove some accounts before adding more.");
+            }
+
             // Resolve whatever input format into a SteamID64
             var steamId64 = await _steamService.ResolveSteamID64(request.SteamInput.Trim());
             if (steamId64 == null)

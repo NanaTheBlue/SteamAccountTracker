@@ -40,6 +40,9 @@ namespace WebApplication1.Tests.Controllers
 
         public Task UpdateLastScannedAt(List<string> steamId64s) =>
             UpdateLastScannedAtHandler != null ? UpdateLastScannedAtHandler(steamId64s) : Task.CompletedTask;
+
+        public Task<int> GetTrackedAccountsCountByUser(string userId) =>
+            Task.FromResult(0);
     }
 
     public class FakeSteamService : ISteamService
