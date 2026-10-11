@@ -107,39 +107,37 @@ export default withSentry(
     console.log(`[scheduled] Starting ban scan at ${new Date(controller.scheduledTime).toISOString()}`);
 
     try {
-      const allAccounts: TrackedAccount[] = [];
       let offset = 0;
       const pageSize = 1000;
+      let totalQueuedBatches = 0;
+      let totalAccounts = 0;
 
-      // 1. Fetch all accounts from your API
+      // 1. Fetch accounts page-by-page and stream directly to queue to prevent memory exhaustion
       while (true) {
         const page = await apiRequest<AccountsPage>(
           `${env.API_BASE_URL}/api/internal/steam/accounts-to-scan?offset=${offset}&limit=${pageSize}`,
           env
         );
-        allAccounts.push(...page.accounts);
+
+        if (page.accounts.length > 0) {
+          totalAccounts += page.accounts.length;
+          // Chunk into batches of 100 (Steam API limit)
+          const batches = chunk(page.accounts, 100);
+          // Send batches to the Queue (max 100 messages per sendBatch)
+          const messageBatches = chunk(batches, 100);
+          for (const batchOfMessages of messageBatches) {
+            await env.SCAN_QUEUE.sendBatch(
+              batchOfMessages.map(b => ({ body: b }))
+            );
+          }
+          totalQueuedBatches += batches.length;
+        }
 
         if (page.count < pageSize) break; // last page
         offset += pageSize;
       }
 
-      console.log(`[scheduled] Fetched ${allAccounts.length} accounts to scan.`);
-      if (allAccounts.length === 0) return;
-
-      // 2. Chunk into batches of 100 (Steam API limit)
-      const batches = chunk(allAccounts, 100);
-      console.log(`[scheduled] Divided into ${batches.length} batches of up to 100. Pushing to queue...`);
-
-      // 3. Send batches to the Queue (max 100 messages per sendBatch)
-      const messageBatches = chunk(batches, 100);
-      
-      for (const batchOfMessages of messageBatches) {
-         await env.SCAN_QUEUE.sendBatch(
-           batchOfMessages.map(b => ({ body: b }))
-         );
-      }
-
-      console.log(`[scheduled] Successfully queued ${batches.length} batches for processing.`);
+      console.log(`[scheduled] Fetched ${totalAccounts} accounts, queued ${totalQueuedBatches} batches for processing.`);
     } catch (error) {
       console.error(`[scheduled] Producer failed: ${error}`);
       throw error;

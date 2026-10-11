@@ -158,6 +158,44 @@ namespace WebApplication1.Tests.Controllers
         }
 
         [Fact]
+        public async Task AddWebhook_WhenExceedsLimit_ReturnsBadRequest()
+        {
+            var userId = Guid.NewGuid();
+            SetAuthenticatedUser(userId);
+            _repo.GetWebhooksHandler = id => Task.FromResult(new List<WebhookDto>
+            {
+                new() { Id = Guid.NewGuid(), Name = "w1", WebhookUrl = "https://discord.com/api/webhooks/1/a", CreatedAt = DateTime.UtcNow },
+                new() { Id = Guid.NewGuid(), Name = "w2", WebhookUrl = "https://discord.com/api/webhooks/2/b", CreatedAt = DateTime.UtcNow },
+                new() { Id = Guid.NewGuid(), Name = "w3", WebhookUrl = "https://discord.com/api/webhooks/3/c", CreatedAt = DateTime.UtcNow },
+                new() { Id = Guid.NewGuid(), Name = "w4", WebhookUrl = "https://discord.com/api/webhooks/4/d", CreatedAt = DateTime.UtcNow },
+                new() { Id = Guid.NewGuid(), Name = "w5", WebhookUrl = "https://discord.com/api/webhooks/5/e", CreatedAt = DateTime.UtcNow },
+            });
+
+            var request = new AddWebhookRequest { Name = "w6", WebhookUrl = "https://discord.com/api/webhooks/6/f" };
+            var result = await _controller.AddWebhook(request, _repo);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Contains("Maximum limit", badRequest.Value?.ToString());
+        }
+
+        [Theory]
+        [InlineData("http://discord.com/api/webhooks/123/token")]
+        [InlineData("https://evil.com/api/webhooks/123/token")]
+        [InlineData("https://discord.com/api/other/123/token")]
+        [InlineData("not-a-url")]
+        public async Task AddWebhook_WhenInvalidUrl_ReturnsBadRequest(string url)
+        {
+            var userId = Guid.NewGuid();
+            SetAuthenticatedUser(userId);
+
+            var request = new AddWebhookRequest { Name = "BadUrl", WebhookUrl = url };
+            var result = await _controller.AddWebhook(request, _repo);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Contains("Only Discord webhook URLs are supported", badRequest.Value?.ToString());
+        }
+
+        [Fact]
         public async Task DeleteWebhook_WhenNotFound_ReturnsNotFound()
         {
             var userId = Guid.NewGuid();

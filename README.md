@@ -32,7 +32,8 @@ This project is built for high performance and scalability using a decoupled arc
 ### 1. Database Configuration
 Run a local SQL Server instance (e.g., via Docker):
 ```bash
-docker run -e 'ACCEPT_EULA=Y' -e 'MSSQL_SA_PASSWORD=YourStrongPassword123!' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest
+
+docker run -e 'ACCEPT_EULA=Y' -e 'MSSQL_SA_PASSWORD=YourStrongPassword123!' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2025-latest
 ```
 Apply the database migrations in order:
 1. Run `WebApplication1/Migrations/000_InitialCreate.sql`

@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using WebApplication1.Middleware;
 using WebApplication1.Repository;
 using WebApplication1.Services;
@@ -111,6 +112,15 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Forwarded headers from reverse proxy (Caddy)
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+forwardedHeadersOptions.KnownIPNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // Security Headers Middleware
 app.Use(async (context, next) =>

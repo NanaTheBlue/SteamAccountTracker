@@ -160,10 +160,19 @@ namespace WebApplication1.Controllers
             if (user == null) return Unauthorized();
 
             // Validate webhook URL is a legitimate Discord webhook to prevent SSRF
-            if (!request.WebhookUrl.StartsWith("https://discord.com/api/webhooks/", StringComparison.OrdinalIgnoreCase) &&
-                !request.WebhookUrl.StartsWith("https://discordapp.com/api/webhooks/", StringComparison.OrdinalIgnoreCase))
+            if (!Uri.TryCreate(request.WebhookUrl, UriKind.Absolute, out var webhookUri) ||
+                webhookUri.Scheme != Uri.UriSchemeHttps ||
+                !(string.Equals(webhookUri.Host, "discord.com", StringComparison.OrdinalIgnoreCase) ||
+                  string.Equals(webhookUri.Host, "discordapp.com", StringComparison.OrdinalIgnoreCase)) ||
+                !webhookUri.AbsolutePath.StartsWith("/api/webhooks/", StringComparison.OrdinalIgnoreCase))
             {
                 return BadRequest("Only Discord webhook URLs are supported (https://discord.com/api/webhooks/...).");
+            }
+
+            var existingWebhooks = await userRepository.GetWebhooks(user.Id);
+            if (existingWebhooks.Count >= 5)
+            {
+                return BadRequest("Maximum limit of 5 Discord webhooks reached. Please delete an existing webhook before adding a new one.");
             }
 
             try
