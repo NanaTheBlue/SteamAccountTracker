@@ -40,14 +40,31 @@ namespace WebApplication1.Tests.Controllers
             DeleteWebhookHandler != null ? DeleteWebhookHandler(userId, webhookId) : Task.FromResult(true);
 
         public Task<bool> DeleteUser(Guid id) => Task.FromResult(true);
+        public Task SavePasswordResetToken(Guid userId, string tokenHash, DateTime expiresAt) => Task.CompletedTask;
+        public Task<User?> GetUserByPasswordResetToken(string tokenHash) => Task.FromResult<User?>(null);
+        public Task<User?> GetUserCredentialsById(Guid id) => Task.FromResult<User?>(null);
+        public Task<bool> UpdatePassword(Guid userId, string newPasswordHash, bool invalidateSession) => Task.FromResult(true);
     }
 
     public class FakeUserService : IUserService
     {
+        public Func<string, Task>? RequestPasswordResetHandler { get; set; }
+        public Func<ResetPasswordRequest, Task<(bool Success, string? ErrorMessage)>>? ResetPasswordHandler { get; set; }
+        public Func<Guid, ChangePasswordRequest, Task<(bool Success, string? ErrorMessage)>>? ChangePasswordHandler { get; set; }
+
         public Task<UserDto?> RegisterUser(RegisterRequest request) => Task.FromResult<UserDto?>(null);
         public Task<LoginResult> LoginUser(LoginRequest request) => Task.FromResult(new LoginResult());
         public Task<AuthenticatedUser?> GetUserFromSession(Guid sessionId) => Task.FromResult<AuthenticatedUser?>(null);
         public Task Logout(Guid sessionId) => Task.CompletedTask;
+
+        public Task RequestPasswordReset(string email) =>
+            RequestPasswordResetHandler != null ? RequestPasswordResetHandler(email) : Task.CompletedTask;
+
+        public Task<(bool Success, string? ErrorMessage)> ResetPassword(ResetPasswordRequest request) =>
+            ResetPasswordHandler != null ? ResetPasswordHandler(request) : Task.FromResult<(bool, string?)>((true, null));
+
+        public Task<(bool Success, string? ErrorMessage)> ChangePassword(Guid userId, ChangePasswordRequest request) =>
+            ChangePasswordHandler != null ? ChangePasswordHandler(userId, request) : Task.FromResult<(bool, string?)>((true, null));
     }
 
     public class UserControllerTests
@@ -215,6 +232,78 @@ namespace WebApplication1.Tests.Controllers
             _repo.DeleteWebhookHandler = (id, webhookId) => Task.FromResult(true);
 
             var result = await _controller.DeleteWebhook(Guid.NewGuid(), _repo);
+
+            Assert.IsType<OkObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task ForgotPassword_WithValidEmail_ReturnsOk()
+        {
+            string? requestedEmail = null;
+            _service.RequestPasswordResetHandler = email =>
+            {
+                requestedEmail = email;
+                return Task.CompletedTask;
+            };
+
+            var result = await _controller.ForgotPassword(new ForgotPasswordRequest { Email = "operator@cheaterwatch.com" });
+
+            Assert.IsType<OkObjectResult>(result);
+            Assert.Equal("operator@cheaterwatch.com", requestedEmail);
+        }
+
+        [Fact]
+        public async Task ResetPassword_WhenInvalidToken_ReturnsBadRequest()
+        {
+            _service.ResetPasswordHandler = _ => Task.FromResult<(bool, string?)>((false, "Invalid or expired password reset token."));
+
+            var result = await _controller.ResetPassword(new ResetPasswordRequest { Token = "bad", NewPassword = "NewSecurePassword123!" });
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Equal("Invalid or expired password reset token.", badRequest.Value);
+        }
+
+        [Fact]
+        public async Task ResetPassword_WhenValidToken_ReturnsOk()
+        {
+            _service.ResetPasswordHandler = _ => Task.FromResult<(bool, string?)>((true, null));
+
+            var result = await _controller.ResetPassword(new ResetPasswordRequest { Token = "valid-token", NewPassword = "NewSecurePassword123!" });
+
+            Assert.IsType<OkObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task ChangePassword_WhenUnauthenticated_ReturnsUnauthorized()
+        {
+            _controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+
+            var result = await _controller.ChangePassword(new ChangePasswordRequest { CurrentPassword = "old", NewPassword = "NewSecurePassword123!" });
+
+            Assert.IsType<UnauthorizedResult>(result);
+        }
+
+        [Fact]
+        public async Task ChangePassword_WhenWrongCurrentPassword_ReturnsBadRequest()
+        {
+            var userId = Guid.NewGuid();
+            SetAuthenticatedUser(userId);
+            _service.ChangePasswordHandler = (_, _) => Task.FromResult<(bool, string?)>((false, "Current password is incorrect."));
+
+            var result = await _controller.ChangePassword(new ChangePasswordRequest { CurrentPassword = "wrong", NewPassword = "NewSecurePassword123!" });
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Equal("Current password is incorrect.", badRequest.Value);
+        }
+
+        [Fact]
+        public async Task ChangePassword_WhenValid_ReturnsOk()
+        {
+            var userId = Guid.NewGuid();
+            SetAuthenticatedUser(userId);
+            _service.ChangePasswordHandler = (_, _) => Task.FromResult<(bool, string?)>((true, null));
+
+            var result = await _controller.ChangePassword(new ChangePasswordRequest { CurrentPassword = "OldPassword123!", NewPassword = "NewSecurePassword123!" });
 
             Assert.IsType<OkObjectResult>(result);
         }

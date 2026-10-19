@@ -18,5 +18,10 @@ namespace WebApplication1.Repository
         Task<WebhookDto> AddWebhook(Guid userId, string name, string url);
         Task<bool> DeleteWebhook(Guid userId, Guid webhookId);
         Task<bool> DeleteUser(Guid id);
+
+        Task SavePasswordResetToken(Guid userId, string tokenHash, DateTime expiresAt);
+        Task<User?> GetUserByPasswordResetToken(string tokenHash);
+        Task<User?> GetUserCredentialsById(Guid id);
+        Task<bool> UpdatePassword(Guid userId, string newPasswordHash, bool invalidateSession);
     }
 }

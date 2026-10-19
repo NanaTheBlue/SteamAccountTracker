@@ -335,5 +335,130 @@ namespace WebApplication1.Repository
                 throw;
             }
         }
+
+        public async Task SavePasswordResetToken(Guid userId, string tokenHash, DateTime expiresAt)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            try
+            {
+                using var cmd = new SqlCommand(@"
+                    UPDATE Users
+                    SET PasswordResetTokenHash = @tokenHash,
+                        PasswordResetExp = @expiresAt
+                    WHERE Id = @userId;", conn);
+
+                cmd.Parameters.Add("@tokenHash", SqlDbType.NVarChar, 64).Value = tokenHash;
+                cmd.Parameters.Add("@expiresAt", SqlDbType.DateTime2).Value = expiresAt;
+                cmd.Parameters.Add("@userId", SqlDbType.UniqueIdentifier).Value = userId;
+
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SqlException e)
+            {
+                _logger.LogError(e, "Failed to save password reset token for user {UserId}", userId);
+                throw;
+            }
+        }
+
+        public async Task<User?> GetUserByPasswordResetToken(string tokenHash)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            try
+            {
+                using var cmd = new SqlCommand(@"
+                    SELECT Id, Username, Email, Passwordhash
+                    FROM Users
+                    WHERE PasswordResetTokenHash = @tokenHash
+                      AND PasswordResetExp > GETUTCDATE();", conn);
+
+                cmd.Parameters.Add("@tokenHash", SqlDbType.NVarChar, 64).Value = tokenHash;
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    return new User
+                    {
+                        ID = reader.GetGuid("Id"),
+                        Username = reader.GetString("Username"),
+                        Email = reader.GetString("Email"),
+                        PasswordHash = reader.GetString("Passwordhash")
+                    };
+                }
+                return null;
+            }
+            catch (SqlException e)
+            {
+                _logger.LogError(e, "Failed to get user by password reset token");
+                throw;
+            }
+        }
+
+        public async Task<User?> GetUserCredentialsById(Guid id)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            try
+            {
+                using var cmd = new SqlCommand("SELECT Id, Username, Email, Passwordhash FROM Users WHERE Id = @Id;", conn);
+                cmd.Parameters.Add("@Id", SqlDbType.UniqueIdentifier).Value = id;
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    return new User
+                    {
+                        ID = reader.GetGuid("Id"),
+                        Username = reader.GetString("Username"),
+                        Email = reader.GetString("Email"),
+                        PasswordHash = reader.GetString("Passwordhash")
+                    };
+                }
+                return null;
+            }
+            catch (SqlException e)
+            {
+                _logger.LogError(e, "Failed to get user credentials by id");
+                throw;
+            }
+        }
+
+        public async Task<bool> UpdatePassword(Guid userId, string newPasswordHash, bool invalidateSession)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            try
+            {
+                var sql = invalidateSession
+                    ? @"UPDATE Users
+                        SET Passwordhash = @passwordHash,
+                            PasswordResetTokenHash = NULL,
+                            PasswordResetExp = NULL,
+                            Session_Id = NULL,
+                            Session_exp = NULL
+                        WHERE Id = @userId;"
+                    : @"UPDATE Users
+                        SET Passwordhash = @passwordHash,
+                            PasswordResetTokenHash = NULL,
+                            PasswordResetExp = NULL
+                        WHERE Id = @userId;";
+
+                using var cmd = new SqlCommand(sql, conn);
+                cmd.Parameters.Add("@passwordHash", SqlDbType.NVarChar, -1).Value = newPasswordHash;
+                cmd.Parameters.Add("@userId", SqlDbType.UniqueIdentifier).Value = userId;
+
+                return await cmd.ExecuteNonQueryAsync() > 0;
+            }
+            catch (SqlException e)
+            {
+                _logger.LogError(e, "Failed to update password for user {UserId}", userId);
+                throw;
+            }
+        }
     }
 }

@@ -122,6 +122,10 @@ WORKER_KEY=generate-a-random-secret-here
 
 # Your frontend URL
 FRONTEND_URL=https://your-frontend.com
+
+# Resend API key for password reset emails
+RESEND_API_KEY=re_your_resend_api_key
+FROM_EMAIL=noreply@alerts.cheaterwatch.com
 ```
 
 Generate a random secret for `WORKER_KEY`:

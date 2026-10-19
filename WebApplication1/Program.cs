@@ -31,6 +31,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISteamRepository, SteamRepository>();
 
 builder.Services.AddHttpClient<ISteamService, SteamService>();
+builder.Services.AddHttpClient<IEmailService, EmailService>();
 
 // Health Checks — monitor API and Database health
 builder.Services.AddHealthChecks()

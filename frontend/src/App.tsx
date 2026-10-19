@@ -10,6 +10,8 @@ import { TrackAccount } from './pages/TrackAccount';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { NotFound } from './pages/NotFound';
 
 // Local dev only: lazy + DEV guard keeps it out of production bundles.
@@ -40,6 +42,8 @@ export default function App() {
               {/* Public only (redirect to /dashboard if logged in) */}
               <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
               <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
+              <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPassword /></PublicOnlyRoute>} />
+              <Route path="/reset-password" element={<PublicOnlyRoute><ResetPassword /></PublicOnlyRoute>} />
 
               {/* Protected routes */}
               <Route element={<ProtectedRoute />}>

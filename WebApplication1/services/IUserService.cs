@@ -9,5 +9,8 @@ namespace WebApplication1.Services
         Task<AuthenticatedUser?> GetUserFromSession(Guid id);
         Task<LoginResult> LoginUser(LoginRequest loginRequest);
         Task Logout(Guid sessionId);
+        Task RequestPasswordReset(string email);
+        Task<(bool Success, string? ErrorMessage)> ResetPassword(ResetPasswordRequest request);
+        Task<(bool Success, string? ErrorMessage)> ChangePassword(Guid userId, ChangePasswordRequest request);
     }
 }
