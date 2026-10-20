@@ -192,6 +192,22 @@ export async function mockFetch(path: string, init: RequestInit = {}): Promise<R
       setMockMode(false);
       return json({ message: 'Logged out (mock).' });
 
+    case 'POST /api/user/forgot-password':
+      return json({
+        message: 'If an account with that email exists, a password reset link has been sent.',
+        devResetToken: 'dev-mock-reset-token',
+      });
+
+    case 'POST /api/user/reset-password':
+      if (!body?.token) return error('Invalid or expired password reset token.', 400);
+      return json({ message: 'Password has been reset successfully. You can now sign in.' });
+
+    case 'POST /api/user/change-password':
+      if (!body?.currentPassword || !body?.newPassword) {
+        return error('Current password and new password are required.', 400);
+      }
+      return json({ message: 'Password updated successfully.' });
+
     case 'DELETE /api/user':
       resetMockDb();
       setMockMode(false);

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { lazy, Suspense, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../api/client';
 import { AuthShell } from '../components/AuthShell';
@@ -67,22 +67,31 @@ export function Login() {
 
         <Field
           id="email"
+          name="email"
           label="Email"
           type="email"
-          autoComplete="email"
+          autoComplete="username"
+          enterKeyHint="next"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
 
         <Field
-          id="password"
+          id="current-password"
+          name="current-password"
           label="Password"
           type="password"
           autoComplete="current-password"
+          enterKeyHint="done"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          labelAction={
+            <Link to="/forgot-password" className="font-mono text-xs text-primary hover:underline">
+              Forgot password?
+            </Link>
+          }
         />
 
         <Button type="submit" disabled={isLoading} className="w-full">

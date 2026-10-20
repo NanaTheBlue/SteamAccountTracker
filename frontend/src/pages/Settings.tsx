@@ -34,6 +34,13 @@ export function Settings() {
   const [newWebhookUrl, setNewWebhookUrl] = useState('');
   const [addingWebhook, setAddingWebhook] = useState(false);
 
+  // Change password form
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -117,6 +124,37 @@ export function Settings() {
       setWebhooks(prev => prev.filter(w => w.id !== id));
     } catch (err: any) {
       setError(err.message);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!currentPassword || !newPassword) {
+      setPasswordError('Current password and new password are required.');
+      return;
+    }
+    if (newPassword.length < 10) {
+      setPasswordError('New password must be at least 10 characters.');
+      return;
+    }
+    if (newPassword.length > 64) {
+      setPasswordError('New password must be 64 characters or less.');
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      await apiPost('/api/user/change-password', { currentPassword, newPassword });
+      setCurrentPassword('');
+      setNewPassword('');
+      setPasswordSuccess('Password updated.');
+    } catch (err: any) {
+      setPasswordError(err.message || 'Failed to update password.');
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -222,6 +260,49 @@ export function Settings() {
             ))
           )}
         </div>
+      </Panel>
+
+      <Panel title="Security">
+        <p className="-mt-2 mb-5 text-sm text-muted">
+          Rotate your operator password. Your active session stays signed in.
+        </p>
+
+        {passwordError && <Alert tone="error" className="mb-4">{passwordError}</Alert>}
+        {passwordSuccess && <Alert tone="success" className="mb-4">{passwordSuccess}</Alert>}
+
+        <form
+          onSubmit={handleChangePassword}
+          className="grid gap-4 border border-line bg-canvas/60 p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+        >
+          <Field
+            id="current-password"
+            name="current-password"
+            label="Current password"
+            type="password"
+            autoComplete="current-password"
+            enterKeyHint="next"
+            required
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+          />
+          <Field
+            id="new-password"
+            name="new-password"
+            label="New password"
+            type="password"
+            autoComplete="new-password"
+            enterKeyHint="done"
+            minLength={10}
+            maxLength={64}
+            required
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="10–64 characters"
+          />
+          <Button type="submit" disabled={changingPassword || !currentPassword || !newPassword}>
+            {changingPassword ? 'Updating...' : 'Update password'}
+          </Button>
+        </form>
       </Panel>
 
       <Panel tone="danger" title="Danger zone">

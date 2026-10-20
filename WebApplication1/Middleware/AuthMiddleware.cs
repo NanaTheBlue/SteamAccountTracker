@@ -11,6 +11,8 @@ namespace WebApplication1.Middleware
         {
             "/api/user/login",
             "/api/user/register",
+            "/api/user/forgot-password",
+            "/api/user/reset-password",
             "/healthz"
         };
 

@@ -68,8 +68,11 @@ export function Register() {
 
         <Field
           id="username"
+          name="username"
           label="Callsign"
           type="text"
+          autoComplete="username"
+          enterKeyHint="next"
           required
           maxLength={50}
           value={username}
@@ -78,9 +81,11 @@ export function Register() {
 
         <Field
           id="email"
+          name="email"
           label="Email"
           type="email"
           autoComplete="email"
+          enterKeyHint="next"
           required
           maxLength={255}
           value={email}
@@ -89,11 +94,14 @@ export function Register() {
         />
 
         <Field
-          id="password"
+          id="new-password"
+          name="new-password"
           label="Password"
           type="password"
           autoComplete="new-password"
+          enterKeyHint="done"
           required
+          minLength={10}
           maxLength={64}
           value={password}
           onChange={(e) => setPassword(e.target.value)}

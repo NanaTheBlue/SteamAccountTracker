@@ -26,6 +26,14 @@ namespace WebApplication1.Tests.Middleware
 
         public Task Logout(Guid sessionId) =>
             LogoutHandler != null ? LogoutHandler(sessionId) : Task.CompletedTask;
+
+        public Task RequestPasswordReset(string email) => Task.CompletedTask;
+
+        public Task<(bool Success, string? ErrorMessage)> ResetPassword(Dtos.ResetPasswordRequest request) =>
+            Task.FromResult<(bool, string?)>((true, null));
+
+        public Task<(bool Success, string? ErrorMessage)> ChangePassword(Guid userId, Dtos.ChangePasswordRequest request) =>
+            Task.FromResult<(bool, string?)>((true, null));
     }
 
     public class AuthMiddlewareTests
@@ -40,6 +48,8 @@ namespace WebApplication1.Tests.Middleware
         [Theory]
         [InlineData("/api/user/login")]
         [InlineData("/api/user/register")]
+        [InlineData("/api/user/forgot-password")]
+        [InlineData("/api/user/reset-password")]
         [InlineData("/healthz")]
         [InlineData("/swagger")]
         [InlineData("/swagger/index.html")]

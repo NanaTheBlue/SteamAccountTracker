@@ -31,6 +31,8 @@ services:
       - STEAM_API_KEY=${STEAM_API_KEY:-}
       - WORKER_KEY=${WORKER_KEY:-local-worker-secret-key}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@alerts.cheaterwatch.com}
     depends_on:
       sqlserver:
         condition: service_healthy

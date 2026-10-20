@@ -119,6 +119,82 @@ namespace WebApplication1.Controllers
             return Ok(new { message = "Logged out successfully." });
         }
 
+        [HttpPost("forgot-password")]
+        [EnableRateLimiting("auth")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Email))
+            {
+                return BadRequest("Email is required.");
+            }
+
+            try
+            {
+                await _userService.RequestPasswordReset(request.Email);
+                return Ok(new { message = "If an account with that email exists, a password reset link has been sent." });
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error processing password reset request");
+                return StatusCode(500, "An error occurred while processing the password reset request.");
+            }
+        }
+
+        [HttpPost("reset-password")]
+        [EnableRateLimiting("auth")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest("Request payload cannot be null.");
+            }
+
+            try
+            {
+                var result = await _userService.ResetPassword(request);
+                if (!result.Success)
+                {
+                    return BadRequest(result.ErrorMessage);
+                }
+
+                return Ok(new { message = "Password has been reset successfully. You can now sign in." });
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error resetting password");
+                return StatusCode(500, "An error occurred while resetting the password.");
+            }
+        }
+
+        [HttpPost("change-password")]
+        [EnableRateLimiting("auth")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            var user = (AuthenticatedUser?)HttpContext.Items["User"];
+            if (user == null) return Unauthorized();
+
+            if (request == null)
+            {
+                return BadRequest("Request payload cannot be null.");
+            }
+
+            try
+            {
+                var result = await _userService.ChangePassword(user.Id, request);
+                if (!result.Success)
+                {
+                    return BadRequest(result.ErrorMessage);
+                }
+
+                return Ok(new { message = "Password updated successfully." });
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error changing password for user {UserId}", user.Id);
+                return StatusCode(500, "An error occurred while changing the password.");
+            }
+        }
+
         [HttpGet("settings")]
         public async Task<IActionResult> GetSettings([FromServices] WebApplication1.Repository.IUserRepository userRepository)
         {

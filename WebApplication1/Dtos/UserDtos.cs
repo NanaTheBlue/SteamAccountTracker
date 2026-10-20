@@ -75,5 +75,35 @@ namespace WebApplication1.Dtos
         [Url]
         public required string WebhookUrl { get; set; }
     }
-}
 
+    public class ForgotPasswordRequest
+    {
+        [Required]
+        [EmailAddress]
+        [MaxLength(255)]
+        public required string Email { get; set; }
+    }
+
+    public class ResetPasswordRequest
+    {
+        [Required]
+        [MaxLength(128)]
+        public required string Token { get; set; }
+
+        [Required]
+        [MinLength(10)]
+        [MaxLength(64)]
+        public required string NewPassword { get; set; }
+    }
+
+    public class ChangePasswordRequest
+    {
+        [Required]
+        public required string CurrentPassword { get; set; }
+
+        [Required]
+        [MinLength(10)]
+        [MaxLength(64)]
+        public required string NewPassword { get; set; }
+    }
+}
